@@ -1,1368 +1,2541 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>노선별 예약현황 대시보드</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>제휴 유입 인원 대시보드</title>
+  
+  <!-- Font Integration -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Icon Integration -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Chart Library -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <!-- Data Fallback -->
+  <script src="data.js"></script>
 
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
+  <style>
+    /* CSS Variables for Color System */
+    :root {
+      --font-primary: 'Outfit', 'Noto Sans KR', sans-serif;
+      
+      --bg-main: #f8fafc;
+      --bg-sidebar: #ffffff;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --bg-card-hover: rgba(255, 255, 255, 1);
+      --border-color: #e2e8f0;
+      --text-main: #334155;
+      --text-muted: #64748b;
+      --text-heading: #0f172a;
+      
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-glow: rgba(37, 99, 235, 0.15);
+      
+      --color-green: #059669;
+      --color-green-bg: #ecfdf5;
+      --color-green-border: #a7f3d0;
+      
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+      --shadow-indigo: 0 10px 25px -5px rgba(37, 99, 235, 0.3);
+      
+      --transition-fast: 0.15s ease;
+      --transition-normal: 0.25s ease;
+    }
 
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-    </style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-primary);
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--text-heading);
+      font-weight: 700;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    /* Sidebar Layout */
+    .sidebar {
+      width: 280px;
+      background-color: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 100;
+    }
+
+    .sidebar-brand {
+      padding: 24px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-brand i {
+      font-size: 24px;
+      color: var(--primary);
+    }
+
+    .sidebar-brand span {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text-heading);
+    }
+
+    .sidebar-menu-title {
+      padding: 20px 20px 8px 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
+    }
+
+    .team-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 14px 24px 14px;
+      list-style: none;
+    }
+
+    .hq-group-header {
+      padding: 8px 10px 4px 10px;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hq-group-header::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 10px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+    .hq-group-header:not(:first-child) {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .team-item {
+      margin-bottom: 3px;
+      list-style: none;
+    }
+
+    .team-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 14px;
+      border-radius: 8px;
+      color: var(--text-main);
+      text-decoration: none;
+      font-size: 14.5px;
+      font-weight: 500;
+      transition: all var(--transition-fast);
+      cursor: pointer;
+    }
+
+    .team-link:hover {
+      background-color: #f1f5f9;
+      color: var(--text-heading);
+    }
+
+    .team-link.active {
+      background-color: var(--primary);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: var(--shadow-indigo);
+    }
+
+    /* Main Content Area */
+    .main-wrapper {
+      margin-left: 280px;
+      flex: 1;
+      min-width: 0;
+      padding: 24px 36px 48px 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Header Bar */
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .month-select-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-sidebar);
+      padding: 8px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .month-select-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .month-select-label i {
+      color: var(--primary);
+    }
+
+    .custom-month-select {
+      position: relative;
+    }
+
+    .custom-select-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 14px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      color: var(--text-heading);
+      background-color: var(--bg-main);
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      outline: none;
+      cursor: pointer;
+      min-width: 150px;
+      transition: all var(--transition-fast);
+    }
+
+    .custom-select-btn:hover, .custom-month-select.open .custom-select-btn {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .dropdown-arrow {
+      font-size: 12px;
+      color: var(--primary);
+      transition: transform 0.2s ease;
+    }
+
+    .custom-month-select.open .dropdown-arrow {
+      transform: rotate(180deg);
+    }
+
+    .custom-select-popup {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      z-index: 1000;
+      min-width: 250px;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.18), 0 8px 12px -6px rgba(0, 0, 0, 0.1);
+      padding: 10px;
+      flex-direction: column;
+      gap: 10px;
+      animation: dropdownFadeIn 0.15s ease-out;
+    }
+
+    @keyframes dropdownFadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .custom-month-select.open .custom-select-popup {
+      display: flex;
+    }
+
+    .select-box-group {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 6px;
+      overflow: hidden;
+    }
+
+    .select-box-header {
+      font-size: 13px;
+      font-weight: 800;
+      color: #1e40af;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .select-box-options {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .custom-option-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--text-heading);
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .custom-option-item:hover {
+      background: #e2e8f0;
+      color: var(--primary);
+    }
+
+    .custom-option-item.selected {
+      background: var(--primary);
+      color: #ffffff !important;
+      font-weight: 700;
+    }
+
+    .month-select {
+      padding: 6px 32px 6px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      color: var(--text-heading);
+      background-color: var(--bg-main);
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%25232563eb'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 14px;
+      transition: all var(--transition-fast);
+    }
+
+    .month-select:hover, .month-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    #month-dropdown {
+      display: none !important;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .search-box {
+      position: relative;
+      width: 280px;
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 10px 16px 10px 40px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-sidebar);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: all var(--transition-fast);
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    /* Dashboard Title block */
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .title-block h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .title-block p {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+
+    /* Summary KPI Grid Layout */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: var(--shadow-md);
+      transition: transform var(--transition-normal), border-color var(--transition-normal);
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: #cbd5e1;
+    }
+
+    .kpi-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+    }
+
+    .kpi-icon {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      font-size: 32px;
+      opacity: 0.12;
+      color: var(--text-heading);
+    }
+
+    .kpi-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-heading);
+      letter-spacing: -0.5px;
+    }
+
+    .kpi-sub {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* Category View Selector Tabs */
+    .view-selector {
+      display: flex;
+      background: var(--bg-sidebar);
+      padding: 6px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      gap: 6px;
+      overflow-x: auto;
+    }
+
+    .view-tab {
+      flex: 1;
+      min-width: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .view-tab:hover {
+      color: var(--text-heading);
+      background-color: #f8fafc;
+    }
+
+    .view-tab.active {
+      background-color: var(--primary);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+
+    .view-tab-count {
+      font-size: 12px;
+      padding: 2px 7px;
+      border-radius: 20px;
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    .view-tab.active .view-tab-count {
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+    }
+
+    /* Automated Insight Box */
+    .insight-box {
+      background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+      border: 1.5px solid #bfdbfe;
+      border-radius: 14px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .insight-icon {
+      font-size: 24px;
+      color: var(--primary);
+      margin-top: 2px;
+    }
+
+    .insight-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .insight-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-heading);
+    }
+
+    .insight-desc {
+      font-size: 14.5px;
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+
+    .insight-list {
+      margin-top: 4px;
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .insight-list li {
+      font-size: 14.5px;
+      font-weight: 500;
+    }
+
+    /* Table Styling */
+    .table-container {
+      overflow-x: auto;
+      width: 100%;
+      border-radius: 10px;
+    }
+
+    .dashboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 14.5px;
+    }
+
+    .dashboard-table th {
+      padding: 14px 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-bottom: 2px solid var(--border-color);
+      background-color: #f1f5f9;
+      white-space: nowrap;
+      user-select: none;
+      font-size: 13.5px;
+    }
+
+    .dashboard-table th.sortable {
+      cursor: pointer;
+    }
+
+    .dashboard-table th.sortable:hover {
+      color: var(--text-heading);
+      background-color: #e2e8f0;
+    }
+
+    .dashboard-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+      vertical-align: middle;
+      font-weight: 500;
+    }
+
+    .dashboard-table tbody tr:hover {
+      background-color: #f8fafc;
+    }
+
+    .dashboard-table tr.total-row {
+      background-color: #f1f5f9;
+      font-weight: 800;
+      border-top: 2px solid #cbd5e1;
+    }
+
+    .dashboard-table tr.total-row td {
+      color: var(--text-heading);
+      font-size: 15px;
+    }
+
+    .number-col {
+      text-align: right;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Clickable Data Cell */
+    .clickable-cell {
+      cursor: pointer;
+      transition: background-color var(--transition-fast), transform var(--transition-fast);
+      position: relative;
+    }
+
+    .clickable-cell:hover {
+      background-color: rgba(37, 99, 235, 0.08) !important;
+      text-decoration: underline;
+    }
+
+    .clickable-cell::after {
+      content: '\f08e';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      font-size: 10px;
+      margin-left: 4px;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      color: var(--primary);
+    }
+
+    .clickable-cell:hover::after {
+      opacity: 0.7;
+    }
+
+    /* Ratio Pill Badges */
+    .ratio-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    /* count > 0 normal, high, or promo items: light gray pill box, dark text */
+    .ratio-badge.normal-ratio,
+    .ratio-badge.high-ratio,
+    .ratio-badge.promo-only {
+      background-color: #f1f5f9;
+      color: #1e293b;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 6px;
+    }
+
+    /* count > 0, BOTH 10%+ & Promo: Sleek Blue Box */
+    .ratio-badge.promo-high-dual {
+      background-color: #eff6ff !important;
+      color: #1e40af !important;
+      border: 1.5px solid #93c5fd !important;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15) !important;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 6px;
+    }
+
+    /* count === 0: Muted gray text, NO box */
+    .ratio-badge.zero-ratio {
+      background: transparent !important;
+      border: none !important;
+      color: #94a3b8 !important;
+      font-weight: 500;
+      padding: 0;
+    }
+
+    /* Modal Overlay & Dialog */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-dialog {
+      background: #ffffff;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 85vh;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      transform: scale(0.95);
+      transition: transform 0.25s ease;
+      overflow: hidden;
+    }
+
+    .modal-backdrop.active .modal-dialog {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+    }
+
+    .modal-header h3 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-heading);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-fast);
+    }
+
+    .modal-close-btn:hover {
+      background-color: #e2e8f0;
+      color: var(--text-heading);
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .modal-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f1f5f9;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .modal-breakdown-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .breakdown-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      transition: all var(--transition-fast);
+    }
+
+    .breakdown-row:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    .breakdown-top-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14.5px;
+    }
+
+    .breakdown-ym {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      color: var(--text-heading);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .breakdown-count {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      color: var(--primary);
+      font-size: 16px;
+    }
+
+    /* Promotion Info Tag */
+    .promo-tag {
+      font-size: 13px;
+      color: #c2410c;
+      background-color: #fff7ed;
+      border: 1px dashed #ffedd5;
+      padding: 5px 10px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .promo-tag i {
+      color: #ea580c;
+    }
+
+    .empty-state {
+      padding: 40px;
+      text-align: center;
+      color: var(--text-muted);
+      border: 1px dashed var(--border-color);
+      border-radius: 12px;
+    }
+  </style>
 </head>
+<body>
 
-<body class="bg-slate-100 min-h-screen text-slate-800">
-
-    <!-- Password Overlay -->
-    <div id="password-overlay"
-        class="fixed inset-0 bg-slate-900 bg-opacity-95 z-50 flex items-center justify-center backdrop-blur-sm transition-opacity duration-300">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 text-center">
-            <h2 class="text-2xl font-bold text-slate-800 mb-2">대시보드 접근</h2>
-            <p class="text-slate-500 mb-6">데이터 확인을 위해 비밀번호를 입력해주세요.</p>
-            <form id="password-form" class="space-y-4">
-                <input type="password" id="password-input"
-                    class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition text-center text-lg"
-                    placeholder="비밀번호" required>
-                <div id="password-error" class="hidden text-red-500 text-sm font-medium">비밀번호가 올바르지 않습니다.</div>
-                <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg shadow-blue-200">
-                    확인
-                </button>
-            </form>
+  <!-- Password Protection Overlay -->
+  <div id="password-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 99999; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
+    <div style="background: #ffffff; width: 90%; max-width: 380px; border-radius: 20px; padding: 36px 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; font-family: var(--font-primary, sans-serif);">
+      <div style="width: 60px; height: 60px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px auto; color: #2563eb; font-size: 26px;">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">제휴 유입 대시보드</h2>
+      <p style="font-size: 13.5px; color: #64748b; margin-bottom: 22px; line-height: 1.4;">접속을 위해 비밀번호를 입력해주세요.</p>
+      
+      <form id="password-form" onsubmit="handlePasswordSubmit(event)">
+        <div style="position: relative; margin-bottom: 14px;">
+          <input type="password" id="password-input" placeholder="비밀번호 입력" style="width: 100%; padding: 13px 40px 13px 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 15px; outline: none; transition: border-color 0.2s;" />
+          <i id="toggle-pw-icon" class="fa-solid fa-eye" onclick="togglePasswordVisibility()" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; cursor: pointer; font-size: 15px;"></i>
         </div>
+        <div id="password-error" style="color: #ef4444; font-size: 13px; font-weight: 600; display: none; margin-bottom: 12px;">
+          비밀번호가 올바르지 않습니다.
+        </div>
+        <button type="submit" style="width: 100%; padding: 13px; background: #2563eb; color: #ffffff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.2s;">
+          접속하기
+        </button>
+      </form>
     </div>
+  </div>
 
-    <!-- Header -->
-    <header class="bg-blue-900 text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 py-6">
-            <h1 class="text-3xl font-bold tracking-tight" id="main-title">로딩 중... <span
-                    class="text-xl font-normal text-blue-200 ml-2" id="sub-title"></span></h1>
-            <p class="text-blue-200 mt-1">2025년 vs 2026년 노선별 비교</p>
-            <div class="mt-5 inline-flex items-center bg-yellow-400 text-blue-900 px-5 py-3 rounded-lg shadow-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span class="font-bold text-lg" id="notice-text">데이터를 불러오는 중입니다...</span>
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <i class="fa-solid fa-handshake"></i>
+      <span>제휴 유입 대시보드</span>
+    </div>
+    
+    <div class="sidebar-menu-title">본부 / 팀 목록</div>
+    <ul class="team-list" id="team-list-container">
+      <!-- Generated dynamically -->
+    </ul>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <main class="main-wrapper">
+    
+    <!-- Top Header Bar -->
+    <header class="header-bar">
+      <!-- Month Dropdown Selector -->
+      <div class="month-select-container">
+        <span class="month-select-label">
+          <i class="fa-solid fa-calendar-check"></i> 월
+        </span>
+        <div class="custom-month-select" id="custom-month-select">
+          <button type="button" class="custom-select-btn" id="custom-select-btn">
+            <span id="selected-month-text">26년 전체</span>
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+          </button>
+          <div class="custom-select-popup" id="custom-select-popup">
+            <div class="select-box-group">
+              <div class="select-box-header">
+                <i class="fa-solid fa-layer-group"></i> 연도별 누적 요약
+              </div>
+              <div class="select-box-options" id="year-options-container"></div>
             </div>
+            <div class="select-box-group">
+              <div class="select-box-header">
+                <i class="fa-solid fa-calendar-days"></i> 월별 상세 현황
+              </div>
+              <div class="select-box-options" id="month-options-container"></div>
+            </div>
+          </div>
         </div>
+        <select class="month-select" id="month-dropdown" style="display: none;"></select>
+      </div>
+      
+      <div class="header-controls">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="live-search" class="search-input" placeholder="노선 검색..." autocomplete="off">
+        </div>
+        <button id="lock-btn" onclick="logoutAuth()" style="display: flex; align-items: center; gap: 6px; padding: 9px 14px; background: #ffffff; border: 1px solid var(--border-color); border-radius: 10px; font-size: 13.5px; font-weight: 600; color: var(--text-main); cursor: pointer; transition: all 0.2s;" title="대시보드 잠금">
+          <i class="fa-solid fa-lock" style="color: #64748b;"></i>
+          <span>잠금</span>
+        </button>
+      </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <!-- Main Title Block -->
+    <div class="title-block">
+      <h1 id="dashboard-title-text">-</h1>
+      <p id="dashboard-subtitle-text">노선별 제휴 채널 유입 인원 및 비중 현황 상세 분석</p>
+    </div>
 
-        <!-- Dashboard Content -->
-        <div id="dashboard-content" class="space-y-8">
+    <!-- Summary KPI Cards Grid -->
+    <section class="summary-grid">
+      <div class="card kpi-card">
+        <i class="fa-solid fa-plane-departure kpi-icon"></i>
+        <div class="kpi-title">팀 전체 예약 인원</div>
+        <div class="kpi-value" id="kpi-total-departures">0<span style="font-size: 16px; font-weight: 600; margin-left: 2px;">명</span></div>
+        <div class="kpi-sub" id="kpi-affiliate-summary" style="color: var(--primary);">제휴 유입: 0명 (0%)</div>
+      </div>
 
-            <!-- Control Panel -->
-            <div id="control-panel" class="flex flex-wrap justify-between items-center mb-3 gap-3">
-                <!-- 주차 선택 + 최근 3주 조회 버튼 -->
-                <div class="bg-white p-3 rounded-xl shadow-md border border-slate-200 flex items-center space-x-3">
-                    <span class="text-lg font-bold text-slate-700 px-2">주차 선택:</span>
-                    <select id="week-select"
-                        class="bg-teal-600 hover:bg-teal-700 text-white text-xl font-bold py-3 px-8 rounded-lg shadow-sm transition cursor-pointer focus:outline-none focus:ring-4 focus:ring-teal-300">
-                        <option value="">주차를 선택해주세요</option>
-                        <!-- Options will be populated automatically -->
-                    </select>
-                    <button id="recent-3weeks-btn"
-                        class="bg-slate-600 hover:bg-slate-700 text-white text-base font-bold py-3 px-5 rounded-lg shadow-sm transition whitespace-nowrap cursor-pointer">
-                        최근 3주 조회
-                    </button>
-                </div>
+      <div class="card kpi-card">
+        <i class="fa-solid fa-crown kpi-icon"></i>
+        <div class="kpi-title">최다 유입 채널</div>
+        <div class="kpi-value" id="kpi-top-channel-name" style="color: var(--primary);">-</div>
+        <div class="kpi-sub" id="kpi-top-channel-detail">0명 (0%)</div>
+      </div>
+    </section>
 
-                <!-- 데이터 선택 -->
-                <div class="bg-white p-3 rounded-xl shadow-md border border-slate-200 flex items-center space-x-3">
-                    <span class="text-lg font-bold text-slate-700 px-2">데이터 선택:</span>
-                    <select id="data-source-select"
-                        class="bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold py-3 px-8 rounded-lg shadow-sm transition cursor-pointer focus:outline-none focus:ring-4 focus:ring-blue-300">
-                        <option value="summary">홈쇼핑 제외시</option>
-                        <option value="shopping">홈쇼핑 포함시</option>
-                    </select>
-                </div>
-            </div>
+    <!-- Category Sub-Tabs -->
+    <nav class="view-selector" id="category-tabs-container">
+      <div class="view-tab active" data-tab="major">
+        <i class="fa-solid fa-star"></i>
+        <span>주요 채널 4사</span>
+        <span class="view-tab-count" id="count-major">4</span>
+      </div>
+      <div class="view-tab" data-tab="openmarket">
+        <i class="fa-solid fa-store"></i>
+        <span>그 외 오픈마켓</span>
+        <span class="view-tab-count" id="count-openmarket">2</span>
+      </div>
+      <div class="view-tab" data-tab="card">
+        <i class="fa-solid fa-credit-card"></i>
+        <span>카드사</span>
+        <span class="view-tab-count" id="count-card">5</span>
+      </div>
+      <div class="view-tab" data-tab="welfare">
+        <i class="fa-solid fa-building-user"></i>
+        <span>복지몰</span>
+        <span class="view-tab-count" id="count-welfare">2</span>
+      </div>
+    </nav>
 
-            <!-- 자세히 보기 토글 버튼 (최근 3주 모드 시 노출) -->
-            <div id="detail-toggle-container" class="hidden flex justify-start mb-4">
-                <button id="mw-detail-btn"
-                    class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-base font-bold py-2.5 px-6 rounded-lg shadow-sm transition whitespace-nowrap cursor-pointer">
-                    자세히 보기
-                </button>
-            </div>
+    <!-- Automated Insights (Positioned BELOW Category Tabs, updates on tab change) -->
+    <div class="insight-box" id="insight-box">
+      <i class="fa-solid fa-lightbulb insight-icon"></i>
+      <div class="insight-content">
+        <div class="insight-title">주요 인사이트</div>
+        <div class="insight-desc" id="insight-text">데이터 분석 중...</div>
+      </div>
+    </div>
 
-            <!-- Single-week 뷰 (기본 표시) -->
-            <div id="single-week-view" class="space-y-8">
+    <!-- Table & Analytics Section -->
+    <section class="card" style="padding: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <h2 style="font-size: 19px;" id="table-card-title">
+          <i class="fa-solid fa-list-check" style="color: var(--primary); margin-right: 8px;"></i>
+          채널별 유입 인원 및 비중 현황
+        </h2>
+        <div style="font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 3px; text-align: right;">
+          <span id="table-popup-note">※ 숫자 클릭 시 <strong>출발일 리드타임, 프로모션 상세</strong> 팝업이 표시됩니다.</span>
+          <span id="table-badge-legend" style="font-size: 12px; color: #475569; font-weight: 600;">
+            <span style="color:#10b981;">★</span> 10% 이상 &nbsp;|&nbsp; 
+            <span style="color:#f97316;">★</span> 프로모션 진행 &nbsp;|&nbsp; 
+            <span style="background:#eff6ff; border:1px solid #93c5fd; color:#1e40af; padding:2px 6px; border-radius:4px; font-weight:700;"><span style="color:#10b981;">★</span><span style="color:#f97316;">★</span> 10% 이상+프로모션</span>
+          </span>
+        </div>
+      </div>
 
-            <!-- Key Metrics -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-                    <h3 class="text-sm font-medium text-slate-500 uppercase">총 예약 (2025)</h3>
-                    <p id="total-2025" class="text-3xl font-bold text-slate-800 mt-2">-</p>
-                </div>
-                <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-                    <h3 class="text-sm font-medium text-slate-500 uppercase">총 예약 (2026)</h3>
-                    <p id="total-2026" class="text-3xl font-bold text-blue-600 mt-2">-</p>
-                </div>
-                <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-                    <h3 class="text-sm font-medium text-slate-500 uppercase">성장률</h3>
-                    <p id="growth-rate" class="text-3xl font-bold text-emerald-600 mt-2">-</p>
-                </div>
-            </div>
+      <div class="table-container" id="table-container">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
 
-            <!-- Short Haul / SE Asia Section -->
-            <div class="border-t border-slate-200 pt-10">
-                <div class="flex items-center gap-3 mb-6">
-                    <span class="bg-blue-600 text-white text-lg font-bold px-4 py-2 rounded-lg shadow-sm">동남아</span>
-                    <h3 class="text-xl font-bold text-slate-700">노선 예약 현황</h3>
-                </div>
+    <!-- Visual Bar Chart Section -->
+    <section class="card" style="padding: 20px;">
+      <h3 style="font-size: 18px; margin-bottom: 16px;" id="chart-card-title">
+        <i class="fa-solid fa-chart-column" style="color: var(--primary); margin-right: 8px;"></i>
+        노선별 제휴 채널 유입 비중 그래프
+      </h3>
+      <div id="apex-bar-chart" style="min-height: 350px;"></div>
+    </section>
 
-                <!-- Insight Box -->
-                <div id="insight-se-asia"
-                    class="mb-6 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg p-4 text-slate-700 shadow-sm flex items-start gap-3">
-                    <span class="text-xl">💡</span>
-                    <span class="font-medium self-center">분석 중...</span>
-                </div>
+    <!-- Yearly Cumulative & Trend Section (Shown when a Year option is selected) -->
+        <!-- Yearly Trend Section (Shown when Year is selected) -->
+        <!-- Yearly Trend Section (Shown when Year is selected) -->
+    <div id="yearly-analysis-wrapper" style="display: none; flex-direction: column; gap: 20px; margin-top: 20px;">
+      <!-- Component 2: 제휴 비중 트렌드 (Line Chart with Route Filter) -->
+      <section class="card" style="padding: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+          <h3 style="font-size: 18px;" id="yearly-trend-title" title="직판 및 주요 채널 4사만 표시됩니다">
+            <i class="fa-solid fa-chart-line" style="color: var(--primary); margin-right: 8px;"></i>
+            월별 제휴 비중 트렌드
+            <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-muted); margin-left: 6px; cursor: help;" title="직판 및 주요 채널 4사만 표시됩니다"></i>
+          </h3>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="trend-route-select" style="font-size: 14px; font-weight: 700; color: var(--text-muted);">노선:</label>
+            <select id="trend-route-select" class="month-select" style="font-size: 14px; padding: 4px 28px 4px 10px;">
+              <option value="전체">전체 노선 (팀 합계)</option>
+            </select>
+          </div>
+        </div>
+        <div id="apex-yearly-trend-line-chart" style="min-height: 360px;"></div>
+      </section>
+    </div>
+  </main>
 
-                <!-- SE Asia Chart -->
-                <div class="bg-white rounded-xl p-6 shadow-lg border border-slate-200 mb-6">
-                    <div class="relative h-80 w-full">
-                        <canvas id="shortHaulChart"></canvas>
-                    </div>
-                </div>
+  <!-- Interactive Detail Modal Dialog -->
+  <div class="modal-backdrop" id="detail-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title"><i class="fa-solid fa-calendar-days" style="color: var(--primary);"></i> 출발일 리드타임</h3>
+        <button class="modal-close-btn" id="modal-close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-meta" id="modal-meta-info">
+          <span>노선: <strong id="modal-route-name">-</strong></span>
+          <span>채널: <strong id="modal-channel-name">-</strong></span>
+          <span>합계: <strong id="modal-total-count" style="color: var(--primary); font-size: 16px;">0명</strong></span>
+        </div>
 
-                <!-- 1. Difference Tables (Amount) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <!-- Growth Table -->
-                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-md font-semibold mb-4 text-emerald-700">📈 예약 증가 (차이순)</h4>
-                        <div class="overflow-x-auto max-h-96">
-                            <table class="min-w-full text-sm text-left text-slate-600">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="px-3 py-2">노선</th>
-                                        <th class="px-2 py-2">2025</th>
-                                        <th class="px-2 py-2">2026</th>
-                                        <th class="px-2 py-2 text-right">차이</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="short-growth-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
+        <div id="modal-chart-area" style="min-height: 180px;"></div>
 
-                    <!-- Decline Table -->
-                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-md font-semibold mb-4 text-red-700">📉 예약 감소 (차이순)</h4>
-                        <div class="overflow-x-auto max-h-96">
-                            <table class="min-w-full text-sm text-left text-slate-600">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="px-3 py-2">노선</th>
-                                        <th class="px-2 py-2">2025</th>
-                                        <th class="px-2 py-2">2026</th>
-                                        <th class="px-2 py-2 text-right">차이</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="short-decline-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+        <div>
+          <h4 style="font-size: 15px; margin-bottom: 6px; color: var(--text-heading);" id="modal-section-title">
+            <i class="fa-solid fa-list" style="margin-right: 6px; color: var(--primary);"></i> 프로모션 리스트
+          </h4>
+          <p style="font-size: 12.5px; color: #8b2252; font-weight: 600; margin-bottom: 10px;" id="modal-promo-note">
+            ※ 프로모션 정보는 주요 채널 4사 진행 건만 포함되어 있습니다.
+          </p>
+          <div id="modal-promo-summary-container"></div>
+          <div class="modal-breakdown-list" id="modal-breakdown-container">
+            <!-- Breakdown rows rendered via JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-                <!-- 2. Rate Tables (Percentage) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- High Growth Rate Table -->
-                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-md font-semibold mb-4 text-purple-700">🚀 급상승 노선 (%)</h4>
-                        <div class="overflow-x-auto max-h-96">
-                            <table class="min-w-full text-sm text-left text-slate-600">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="px-3 py-2">노선</th>
-                                        <th class="px-2 py-2">2025</th>
-                                        <th class="px-2 py-2">2026</th>
-                                        <th class="px-2 py-2 text-right">성장률</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="short-rate-high-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
+  <!-- Embedded Dashboard Data & Logic -->
+  <script src="data.js"></script>
+  <script>
+    /* EMBEDDED_DATA_START */
+    // Loaded from external data.js
+    // Representative Channel Colors specified by User
+    const CHANNEL_COLORS = {
+      "네이버": "rgb(3, 199, 90)",
+      "지마켓/옥션": "rgb(0, 40, 176)",
+      "지마켓": "rgb(0, 40, 176)",
+      "옥션": "rgb(235, 0, 10)",
+      "트립스토어": "rgb(239, 55, 55)",
+      "마이리얼트립": "rgb(43, 150, 237)",
 
-                    <!-- High Decline Rate Table -->
-                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-md font-semibold mb-4 text-rose-700">🔻 급하락 노선 (%)</h4>
-                        <div class="overflow-x-auto max-h-96">
-                            <table class="min-w-full text-sm text-left text-slate-600">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="px-3 py-2">노선</th>
-                                        <th class="px-2 py-2">2025</th>
-                                        <th class="px-2 py-2">2026</th>
-                                        <th class="px-2 py-2 text-right">성장률</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="short-rate-low-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      "십일번가": "rgb(255, 0, 67)",
+      "11번가": "rgb(255, 0, 67)",
+      "SSG": "rgb(99, 41, 246)",
 
-            <!-- NE Asia Section (NEW) -->
-            <div class="border-t border-slate-200 pt-10">
-                <div class="flex items-center gap-3 mb-6">
-                    <span class="bg-teal-600 text-white text-lg font-bold px-4 py-2 rounded-lg shadow-sm">동북아</span>
-                    <h3 class="text-xl font-bold text-slate-700">노선 예약 현황</h3>
-                </div>
+      "신한카드": "rgb(0, 69, 255)",
+      "삼성카드": "rgb(10, 76, 163)",
+      "국민카드": "rgb(247, 197, 1)",
+      "현대카드": "rgb(0, 0, 0)",
+      "농협카드": "rgb(247, 179, 18)",
 
-                <!-- Insight Box -->
-                <div id="insight-ne-asia"
-                    class="mb-6 bg-teal-50 border-l-4 border-teal-500 rounded-r-lg p-4 text-slate-700 shadow-sm flex items-start gap-3">
-                    <span class="text-xl">💡</span>
-                    <span class="font-medium self-center">분석 중...</span>
-                </div>
+      "이제너두": "rgb(95, 174, 8)",
+      "현대이지웰": "rgb(10, 152, 130)",
 
-                <!-- NE Asia Chart -->
-                <div class="bg-white rounded-xl p-6 shadow-lg border border-slate-200 mb-6">
-                    <div class="relative h-80 w-full">
-                        <canvas id="neAsiaChart"></canvas>
-                    </div>
-                </div>
+      "직판": "rgb(100, 116, 139)",
+      "직판, 홈쇼핑 등": "rgb(148, 163, 184)",
+      "이 외": "rgb(148, 163, 184)"
+    };
 
-                <!-- 1. Difference Tables (Amount) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <!-- Growth Table -->
-                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-md font-semibold mb-4 text-emerald-700">📈 예약 증가 (차이순)</h4>
-                        <div class="overflow-x-auto max-h-96">
-                            <table class="min-w-full text-sm text-left text-slate-600">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="px-3 py-2">노선</th>
-                                        <th class="px-2 py-2">2025</th>
-                                        <th class="px-2 py-2">2026</th>
-                                        <th class="px-2 py-2 text-right">차이</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ne-growth-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
+    // Tab Definitions mapping
+    const TAB_DEFINITIONS = {
+      major: {
+        title: "주요 채널 4사",
+        channels: [
+          { key: "네이버", name: "네이버" },
+          { key: "지마켓/옥션", name: "지마켓/옥션" },
+          { key: "트립스토어", name: "트립스토어" },
+          { key: "마이리얼트립", name: "마이리얼트립" }
+        ]
+      },
+      openmarket: {
+        title: "그 외 오픈마켓",
+        channels: [
+          { key: "십일번가", name: "11번가" },
+          { key: "SSG", name: "SSG" }
+        ]
+      },
+      card: {
+        title: "카드사",
+        channels: [
+          { key: "신한카드", name: "신한카드" },
+          { key: "삼성카드", name: "삼성카드" },
+          { key: "국민카드", name: "국민카드" },
+          { key: "현대카드", name: "현대카드" },
+          { key: "농협카드", name: "농협카드" }
+        ]
+      },
+      welfare: {
+        title: "복지몰",
+        channels: [
+          { key: "이제너두", name: "이제너두" },
+          { key: "현대이지웰", name: "현대이지웰" }
+        ]
+      }
+    };
 
-                    <!-- Decline Table -->
-                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-md font-semibold mb-4 text-red-700">📉 예약 감소 (차이순)</h4>
-                        <div class="overflow-x-auto max-h-96">
-                            <table class="min-w-full text-sm text-left text-slate-600">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="px-3 py-2">노선</th>
-                                        <th class="px-2 py-2">2025</th>
-                                        <th class="px-2 py-2">2026</th>
-                                        <th class="px-2 py-2 text-right">차이</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ne-decline-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+    // All 13 Base Channels list for Year View (Total 15 columns)
+    const ALL_13_CHANNELS = [
+      { key: "네이버", name: "네이버" },
+      { key: "지마켓/옥션", name: "지마켓/옥션" },
+      { key: "트립스토어", name: "트립스토어" },
+      { key: "마이리얼트립", name: "마이리얼트립" },
+      { key: "십일번가", name: "11번가" },
+      { key: "SSG", name: "SSG" },
+      { key: "신한카드", name: "신한카드" },
+      { key: "삼성카드", name: "삼성카드" },
+      { key: "국민카드", name: "국민카드" },
+      { key: "현대카드", name: "현대카드" },
+      { key: "농협카드", name: "농협카드" },
+      { key: "이제너두", name: "이제너두" },
+      { key: "현대이지웰", name: "현대이지웰" }
+    ];
 
-                <!-- 2. Rate Tables (Percentage) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- High Growth Rate Table -->
-                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-md font-semibold mb-4 text-purple-700">🚀 급상승 노선 (%)</h4>
-                        <div class="overflow-x-auto max-h-96">
-                            <table class="min-w-full text-sm text-left text-slate-600">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="px-3 py-2">노선</th>
-                                        <th class="px-2 py-2">2025</th>
-                                        <th class="px-2 py-2">2026</th>
-                                        <th class="px-2 py-2 text-right">성장률</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ne-rate-high-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
+    // State Variables
+    let dashboardData = null;
+    let currentMonth = "";
+    let currentTeamKey = "동1";
+    let currentTab = "major";
+    let searchQuery = "";
+    let sortColumn = "total_count";
+    let sortAscending = false;
+    let barChartInstance = null;
+    let modalChartInstance = null;
+    let yearlyTrendLineChartInstance = null;
+    let selectedTrendRoute = "전체";
 
-                    <!-- High Decline Rate Table -->
-                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-md font-semibold mb-4 text-rose-700">🔻 급하락 노선 (%)</h4>
-                        <div class="overflow-x-auto max-h-96">
-                            <table class="min-w-full text-sm text-left text-slate-600">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="px-3 py-2">노선</th>
-                                        <th class="px-2 py-2">2025</th>
-                                        <th class="px-2 py-2">2026</th>
-                                        <th class="px-2 py-2 text-right">성장률</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ne-rate-low-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    // Element References
+    const monthDropdown = document.getElementById("month-dropdown");
+    const teamListContainer = document.getElementById("team-list-container");
+    const categoryTabsContainer = document.getElementById("category-tabs-container");
+    const searchInput = document.getElementById("live-search");
 
-            <!-- Long Haul Section -->
-            <div class="border-t border-slate-200 pt-10">
-                <div class="flex items-center gap-3 mb-6">
-                    <span class="bg-indigo-600 text-white text-lg font-bold px-4 py-2 rounded-lg shadow-sm">장거리</span>
-                    <h3 class="text-xl font-bold text-slate-700">노선 예약 현황</h3>
-                </div>
+    const dashboardTitleText = document.getElementById("dashboard-title-text");
+    const kpiTotalDepartures = document.getElementById("kpi-total-departures");
+    const kpiAffiliateSummary = document.getElementById("kpi-affiliate-summary");
+    const kpiTopChannelName = document.getElementById("kpi-top-channel-name");
+    const kpiTopChannelDetail = document.getElementById("kpi-top-channel-detail");
 
-                <!-- Insight Box -->
-                <div id="insight-long-haul"
-                    class="mb-6 bg-indigo-50 border-l-4 border-indigo-500 rounded-r-lg p-4 text-slate-700 shadow-sm flex items-start gap-3">
-                    <span class="text-xl">💡</span>
-                    <span class="font-medium self-center">분석 중...</span>
-                </div>
+    const insightText = document.getElementById("insight-text");
+    const tableCardTitle = document.getElementById("table-card-title");
+    const tableContainer = document.getElementById("table-container");
 
-                <!-- Long Haul Chart -->
-                <div class="bg-white rounded-xl p-6 shadow-lg border border-slate-200 mb-6">
-                    <div class="relative h-80 w-full">
-                        <canvas id="longHaulChart"></canvas>
-                    </div>
-                </div>
+    // Modal References
+    const detailModal = document.getElementById("detail-modal");
+    const modalCloseBtn = document.getElementById("modal-close-btn");
+    const modalRouteName = document.getElementById("modal-route-name");
+    const modalChannelName = document.getElementById("modal-channel-name");
+    const modalTotalCount = document.getElementById("modal-total-count");
+    const modalBreakdownContainer = document.getElementById("modal-breakdown-container");
 
-                <!-- 1. Difference Tables (Amount) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <!-- Growth Table -->
-                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-md font-semibold mb-4 text-emerald-700">📈 예약 증가 (차이순)</h4>
-                        <div class="overflow-x-auto max-h-96">
-                            <table class="min-w-full text-sm text-left text-slate-600">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="px-3 py-2">노선</th>
-                                        <th class="px-2 py-2">2025</th>
-                                        <th class="px-2 py-2">2026</th>
-                                        <th class="px-2 py-2 text-right">차이</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="long-growth-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
+    // Helper: Convert '2026-06' to '26년 6월' strictly
+    function ymToMonthKey(ymStr) {
+      if (!ymStr) return "";
+      const parts = ymStr.split("-");
+      if (parts.length === 2) {
+        const yy = parts[0].substring(2);
+        const mm = parseInt(parts[1], 10);
+        return `${yy}년 ${mm}월`;
+      }
+      return ymStr;
+    }
 
-                    <!-- Decline Table -->
-                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-md font-semibold mb-4 text-red-700">📉 예약 감소 (차이순)</h4>
-                        <div class="overflow-x-auto max-h-96">
-                            <table class="min-w-full text-sm text-left text-slate-600">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="px-3 py-2">노선</th>
-                                        <th class="px-2 py-2">2025</th>
-                                        <th class="px-2 py-2">2026</th>
-                                        <th class="px-2 py-2 text-right">차이</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="long-decline-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+    // Helper: Strictly Lookup Promotions for EXACT (monthKey, teamName, channelKey, routeName)
+    function getPromotionsStrict(monthKey, teamName, channelKey, routeName) {
+      if (!dashboardData || !dashboardData.promotions_data) return [];
+      
+      const promosForMonth = dashboardData.promotions_data[monthKey];
+      if (!promosForMonth) return [];
 
-                <!-- 2. Rate Tables (Percentage) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- High Growth Rate Table -->
-                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-md font-semibold mb-4 text-purple-700">🚀 급상승 노선 (%)</h4>
-                        <div class="overflow-x-auto max-h-96">
-                            <table class="min-w-full text-sm text-left text-slate-600">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="px-3 py-2">노선</th>
-                                        <th class="px-2 py-2">2025</th>
-                                        <th class="px-2 py-2">2026</th>
-                                        <th class="px-2 py-2 text-right">성장률</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="long-rate-high-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
+      const promosForTeam = promosForMonth[teamName];
+      if (!promosForTeam) return [];
 
-                    <!-- High Decline Rate Table -->
-                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-md font-semibold mb-4 text-rose-700">🔻 급하락 노선 (%)</h4>
-                        <div class="overflow-x-auto max-h-96">
-                            <table class="min-w-full text-sm text-left text-slate-600">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="px-3 py-2">노선</th>
-                                        <th class="px-2 py-2">2025</th>
-                                        <th class="px-2 py-2">2026</th>
-                                        <th class="px-2 py-2 text-right">성장률</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="long-rate-low-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> <!-- /single-week-view -->
+      let targetCh = channelKey;
+      if (targetCh === "지마켓" || targetCh === "옥션") targetCh = "지마켓/옥션";
 
-            <!-- Multi-week 뷰 (최근 3주 모드, 기본 숨김) -->
-            <div id="multi-week-view" class="hidden space-y-8">
-            </div>
+      const promosForCh = promosForTeam[targetCh];
+      if (!promosForCh) return [];
 
-        </div> <!-- /dashboard-content -->
+      let routePromos = promosForCh[routeName] || [];
+      if (routePromos.length === 0) {
+        Object.keys(promosForCh).forEach(rKey => {
+          if (rKey === routeName || (routeName.length > 2 && rKey.includes(routeName))) {
+            routePromos = routePromos.concat(promosForCh[rKey]);
+          }
+        });
+      }
 
-    </main>
+      return Array.from(new Set(routePromos));
+    }
 
-    <script>
-        // Data State
-        let globalWorkData = {
-            summary: [],
-            shopping: []
+    // ==========================================
+    // Password Security Settings
+    // ==========================================
+    const DASHBOARD_PASSWORD = "1234"; // 기본 비밀번호 (필요시 이 값을 변경하시면 됩니다)
+
+    function checkAuth() {
+      const isAuth = sessionStorage.getItem("dashboard_auth") === "true";
+      const overlay = document.getElementById("password-overlay");
+      if (overlay) {
+        if (isAuth) {
+          overlay.style.display = "none";
+        } else {
+          overlay.style.display = "flex";
+          setTimeout(() => {
+            const pwInput = document.getElementById("password-input");
+            if (pwInput) pwInput.focus();
+          }, 100);
+        }
+      }
+    }
+
+    function handlePasswordSubmit(e) {
+      if (e) e.preventDefault();
+      const pwInput = document.getElementById("password-input");
+      const errorEl = document.getElementById("password-error");
+      if (!pwInput) return;
+
+      if (pwInput.value === DASHBOARD_PASSWORD) {
+        sessionStorage.setItem("dashboard_auth", "true");
+        checkAuth();
+        if (errorEl) errorEl.style.display = "none";
+        pwInput.value = "";
+      } else {
+        if (errorEl) errorEl.style.display = "block";
+        pwInput.style.borderColor = "#ef4444";
+        pwInput.focus();
+      }
+    }
+
+    function togglePasswordVisibility() {
+      const pwInput = document.getElementById("password-input");
+      const icon = document.getElementById("toggle-pw-icon");
+      if (!pwInput || !icon) return;
+      if (pwInput.type === "password") {
+        pwInput.type = "text";
+        icon.className = "fa-solid fa-eye-slash";
+      } else {
+        pwInput.type = "password";
+        icon.className = "fa-solid fa-eye";
+      }
+    }
+
+    function logoutAuth() {
+      sessionStorage.removeItem("dashboard_auth");
+      checkAuth();
+    }
+
+    // Initialize Application
+    function init() {
+      checkAuth();
+
+      if (typeof EMBEDDED_DATA !== 'undefined' && EMBEDDED_DATA) {
+        startDashboard(EMBEDDED_DATA);
+        return;
+      }
+
+      fetch('data.json')
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(data => {
+          startDashboard(data);
+        })
+        .catch(err => {
+          console.error("Data loading error:", err);
+          tableContainer.innerHTML = `
+            <div class="empty-state">
+              <i class="fa-solid fa-triangle-exclamation" style="font-size: 40px; color: var(--color-red); margin-bottom: 12px;"></i>
+              <h4>데이터를 불러오지 못했습니다.</h4>
+              <p>python build_data.py를 실행하거나 data.json 파일이 위치했는지 확인해 주세요.</p>
+            </div>`;
+        });
+    }
+
+    function startDashboard(data) {
+      dashboardData = data;
+      
+      monthDropdown.innerHTML = "";
+      const yearContainer = document.getElementById("year-options-container");
+      const monthContainer = document.getElementById("month-options-container");
+      if (yearContainer) yearContainer.innerHTML = "";
+      if (monthContainer) monthContainer.innerHTML = "";
+
+      // 1. Group Years if available
+      if (data.years && data.years.length > 0) {
+        const yearGroup = document.createElement("optgroup");
+        yearGroup.label = "연도별 누적 요약";
+        data.years.forEach(y => {
+          const opt = document.createElement("option");
+          opt.value = y;
+          opt.textContent = `${y} 전체`;
+          yearGroup.appendChild(opt);
+
+          if (yearContainer) {
+            const itemBtn = document.createElement("button");
+            itemBtn.type = "button";
+            itemBtn.className = "custom-option-item";
+            itemBtn.dataset.value = y;
+            itemBtn.innerHTML = `<span>${y} 전체</span> <i class="fa-solid fa-check check-icon" style="display:none;"></i>`;
+            itemBtn.addEventListener("click", () => selectMonthOption(y, `${y} 전체`));
+            yearContainer.appendChild(itemBtn);
+          }
+        });
+        monthDropdown.appendChild(yearGroup);
+      }
+
+      // 2. Group Months
+      if (data.months && data.months.length > 0) {
+        const monthGroup = document.createElement("optgroup");
+        monthGroup.label = "월별 상세 현황";
+        data.months.forEach(m => {
+          const opt = document.createElement("option");
+          opt.value = m;
+          opt.textContent = m;
+          monthGroup.appendChild(opt);
+
+          if (monthContainer) {
+            const itemBtn = document.createElement("button");
+            itemBtn.type = "button";
+            itemBtn.className = "custom-option-item";
+            itemBtn.dataset.value = m;
+            itemBtn.innerHTML = `<span>${m}</span> <i class="fa-solid fa-check check-icon" style="display:none;"></i>`;
+            itemBtn.addEventListener("click", () => selectMonthOption(m, m));
+            monthContainer.appendChild(itemBtn);
+          }
+        });
+        monthDropdown.appendChild(monthGroup);
+      }
+
+      currentMonth = (data.years && data.years.length > 0) ? data.years[0] : (data.months[0] || "26년 1월");
+      const initialLabel = (data.years && data.years.length > 0) ? `${currentMonth} 전체` : currentMonth;
+      updateCustomDropdownUI(currentMonth, initialLabel);
+
+      buildSidebarMenu();
+
+      // Click event to toggle custom dropdown
+      const customSelectWrapper = document.getElementById("custom-month-select");
+      const customSelectBtn = document.getElementById("custom-select-btn");
+      if (customSelectBtn && customSelectWrapper) {
+        customSelectBtn.onclick = (e) => {
+          e.stopPropagation();
+          customSelectWrapper.classList.toggle("open");
         };
 
-        // Chart Instances
-        let chartInstances = {
-            se_asia: null,
-            ne_asia: null,
-            long_haul: null
-        };
+        document.addEventListener("click", (e) => {
+          if (!customSelectWrapper.contains(e.target)) {
+            customSelectWrapper.classList.remove("open");
+          }
+        });
+      }
 
-        // Multi-week state
-        let currentViewMode = 'single'; // 'single' or 'multi3'
-        let currentMultiWeekDatasets = null;
-        let existingWeeks = [];
+      monthDropdown.addEventListener("change", (e) => {
+        currentMonth = e.target.value;
+        selectedTrendRoute = "전체";
+        renderDashboard();
+      });
 
-        // Initialize Application
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Password Protection
-            const passwordOverlay = document.getElementById('password-overlay');
-            const passwordForm = document.getElementById('password-form');
-            const passwordInput = document.getElementById('password-input');
-            const passwordError = document.getElementById('password-error');
-            const CORRECT_PASSWORD = "vgt1234!"; // 기본 설정된 비밀번호
+    function selectMonthOption(val, labelText) {
+      currentMonth = val;
+      selectedTrendRoute = "전체";
+      updateCustomDropdownUI(val, labelText);
+      const customSelectWrapper = document.getElementById("custom-month-select");
+      if (customSelectWrapper) customSelectWrapper.classList.remove("open");
+      renderDashboard();
+    }
 
-            // Check if already authenticated in this session
-            if (sessionStorage.getItem('isAuthenticated') === 'true') {
-                passwordOverlay.style.display = 'none';
+    function updateCustomDropdownUI(val, labelText) {
+      monthDropdown.value = val;
+      const selectedTextEl = document.getElementById("selected-month-text");
+      if (selectedTextEl) selectedTextEl.textContent = labelText;
+
+      document.querySelectorAll(".custom-option-item").forEach(btn => {
+        const checkIcon = btn.querySelector(".check-icon");
+        if (btn.dataset.value === val) {
+          btn.classList.add("selected");
+          if (checkIcon) checkIcon.style.display = "inline-block";
+        } else {
+          btn.classList.remove("selected");
+          if (checkIcon) checkIcon.style.display = "none";
+        }
+      });
+    }
+
+      // Delegate listener for trend-route-select
+      document.addEventListener("change", (e) => {
+        if (e.target && e.target.id === "trend-route-select") {
+          selectedTrendRoute = e.target.value;
+          renderYearlyTrendLineChart();
+        }
+      });
+
+      searchInput.addEventListener("input", (e) => {
+        searchQuery = e.target.value.trim().toLowerCase();
+        renderTableAndChart();
+      });
+
+      categoryTabsContainer.querySelectorAll(".view-tab").forEach(tabBtn => {
+        tabBtn.addEventListener("click", () => {
+          categoryTabsContainer.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+          tabBtn.classList.add("active");
+          currentTab = tabBtn.getAttribute("data-tab");
+          renderTableAndChart();
+        });
+      });
+
+      modalCloseBtn.addEventListener("click", closeModal);
+      detailModal.addEventListener("click", (e) => {
+        if (e.target === detailModal) closeModal();
+      });
+
+      renderDashboard();
+    }
+
+    function buildSidebarMenu() {
+      teamListContainer.innerHTML = "";
+      if (!dashboardData || !dashboardData.hq_groups) return;
+
+      Object.keys(dashboardData.hq_groups).forEach(hqName => {
+        const hqHeader = document.createElement("li");
+        hqHeader.className = "hq-group-header";
+        hqHeader.textContent = hqName;
+        teamListContainer.appendChild(hqHeader);
+
+        dashboardData.hq_groups[hqName].forEach(team => {
+          const item = document.createElement("li");
+          item.className = "team-item";
+
+          const link = document.createElement("a");
+          link.className = `team-link ${team.key === currentTeamKey ? "active" : ""}`;
+          link.innerHTML = `<span>${team.name}</span><i class="fa-solid fa-chevron-right" style="font-size: 11px; opacity: 0.6;"></i>`;
+          
+          link.addEventListener("click", (e) => {
+            e.preventDefault();
+            document.querySelectorAll(".team-link").forEach(l => l.classList.remove("active"));
+            link.classList.add("active");
+            currentTeamKey = team.key;
+            renderDashboard();
+          });
+
+          item.appendChild(link);
+          teamListContainer.appendChild(item);
+        });
+      });
+    }
+
+    function getSelectionData() {
+      if (!dashboardData) return { isYearView: false, teamData: null };
+      if (dashboardData.years_data && dashboardData.years_data[currentMonth]) {
+        return { isYearView: true, teamData: dashboardData.years_data[currentMonth][currentTeamKey] };
+      }
+      if (dashboardData.months_data && dashboardData.months_data[currentMonth]) {
+        return { isYearView: false, teamData: dashboardData.months_data[currentMonth][currentTeamKey] };
+      }
+      return { isYearView: false, teamData: null };
+    }
+
+    function renderDashboard() {
+      const { isYearView, teamData } = getSelectionData();
+      if (!teamData) {
+        tableContainer.innerHTML = `<div class="empty-state">해당 연도/월/팀의 데이터가 존재하지 않습니다.</div>`;
+        return;
+      }
+
+      if (isYearView) {
+        dashboardTitleText.innerHTML = `<span>${currentMonth} 전체 - ${teamData.team_name}</span>`;
+        document.getElementById("dashboard-subtitle-text").textContent = "노선별 제휴 채널 누적 유입 인원 및 월별 비중 트렌드 상세 분석";
+        categoryTabsContainer.style.display = "none";
+      } else {
+        dashboardTitleText.innerHTML = `<span>${currentMonth} - ${teamData.team_name}</span>`;
+        document.getElementById("dashboard-subtitle-text").textContent = "노선별 제휴 채널 유입 인원 및 비중 현황 상세 분석";
+        categoryTabsContainer.style.display = "flex";
+      }
+
+      const tableNoteEl = document.getElementById("table-popup-note");
+      if (tableNoteEl) {
+        tableNoteEl.innerHTML = isYearView
+          ? "※ 숫자 클릭 시 <strong>월별 예약 인원, 프로모션 상세</strong> 팝업이 표시됩니다."
+          : "※ 숫자 클릭 시 <strong>출발일 리드타임, 프로모션 상세</strong> 팝업이 표시됩니다.";
+      }
+
+      const yearlyWrapper = document.getElementById("yearly-analysis-wrapper");
+      if (yearlyWrapper) {
+        yearlyWrapper.style.display = isYearView ? "flex" : "none";
+      }
+
+      renderTopSummarySection(teamData);
+      renderTableAndChart();
+
+      if (isYearView) {
+        populateTrendRouteDropdown(teamData);
+        renderYearlyTrendLineChart(teamData);
+      }
+    }
+
+    // Top KPI Section (Handles ties for Top Channel)
+    function renderTopSummarySection(teamData) {
+      const teamTotal = teamData.team_total;
+      const totalInflow = teamTotal.total_count;
+
+      let sum13Channels = 0;
+      ALL_13_CHANNELS.forEach(ch => {
+        const cData = teamTotal.channels[ch.key];
+        if (cData) sum13Channels += cData.count;
+      });
+
+      const affiliateRatioPct = totalInflow > 0 ? ((sum13Channels / totalInflow) * 100).toFixed(1) : "0.0";
+
+      kpiTotalDepartures.innerHTML = `${totalInflow.toLocaleString('ko-KR')}<span style="font-size: 16px; font-weight: 600; margin-left: 2px;">명</span>`;
+      kpiAffiliateSummary.textContent = `제휴 유입: ${sum13Channels.toLocaleString('ko-KR')}명 (${affiliateRatioPct}%)`;
+
+      let maxCount = 0;
+      let maxRatio = 0;
+      let topChannels = [];
+
+      ALL_13_CHANNELS.forEach(ch => {
+        const cData = teamTotal.channels[ch.key];
+        if (cData) {
+          if (cData.count > maxCount) {
+            maxCount = cData.count;
+            maxRatio = cData.ratio;
+            topChannels = [ch.name];
+          } else if (cData.count === maxCount && maxCount > 0) {
+            topChannels.push(ch.name);
+          }
+        }
+      });
+
+      const maxChannelName = topChannels.length > 0 ? topChannels.join(", ") : "-";
+      kpiTopChannelName.textContent = maxChannelName;
+      kpiTopChannelDetail.textContent = `${maxCount.toLocaleString('ko-KR')}명 (${(maxRatio * 100).toFixed(1)}%)`;
+    }
+
+    function renderInsightBox(teamData, isYearView) {
+      const activeChannels = isYearView ? ALL_13_CHANNELS : TAB_DEFINITIONS[currentTab].channels;
+      const channelMap = {};
+
+      teamData.routes.forEach(r => {
+        activeChannels.forEach(ch => {
+          const cData = r.channels[ch.key];
+          if (cData && cData.ratio >= 0.10) {
+            if (!channelMap[ch.name]) {
+              channelMap[ch.name] = [];
+            }
+            channelMap[ch.name].push({
+              routeName: r.route,
+              count: cData.count
+            });
+          }
+        });
+      });
+
+      const channelKeys = Object.keys(channelMap);
+
+      if (channelKeys.length === 0) {
+        const viewLabel = isYearView ? "전체 13개 제휴" : TAB_DEFINITIONS[currentTab].title;
+        insightText.innerHTML = `
+          <div style="color: var(--text-muted); font-size: 14.5px;">
+            <strong>${viewLabel}</strong> 채널 중 노선별 유입 비중이 10% 이상인 항목이 없습니다.
+          </div>
+        `;
+        return;
+      }
+
+      channelKeys.forEach(chName => {
+        channelMap[chName].sort((a, b) => b.count - a.count);
+      });
+
+      channelKeys.sort((a, b) => {
+        const sumA = channelMap[a].reduce((acc, x) => acc + x.count, 0);
+        const sumB = channelMap[b].reduce((acc, x) => acc + x.count, 0);
+        return sumB - sumA;
+      });
+
+      let html = `
+        <div style="font-weight: 700; margin-bottom: 8px; color: var(--text-heading); font-size: 15px;">
+          노선별 유입 비중이 10% 이상인 제휴사 및 노선 항목입니다. 프로모션 진행 여부 확인해주세요!
+        </div>
+        <ol class="insight-list" style="padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+      `;
+
+      channelKeys.forEach((chName) => {
+        const routeItems = channelMap[chName].map(item => 
+          `<strong>${item.routeName}</strong>`
+        ).join(", ");
+
+        html += `
+          <li style="line-height: 1.6; font-size: 14.5px;">
+            <strong style="color: var(--primary); font-size: 15px;">${chName}</strong> 유입 : ${routeItems}
+          </li>`;
+      });
+
+      html += `</ol>`;
+      insightText.innerHTML = html;
+    }
+
+    function renderTableAndChart() {
+      const { isYearView, teamData } = getSelectionData();
+      if (!teamData) return;
+
+      const tabDef = TAB_DEFINITIONS[currentTab];
+      const channels = isYearView ? ALL_13_CHANNELS : tabDef.channels;
+
+      renderInsightBox(teamData, isYearView);
+
+      // Update badge legend based on tab (card/welfare have no promo data)
+      const legendEl = document.getElementById("table-badge-legend");
+      const isPromoTab = isYearView || currentTab === "major" || currentTab === "openmarket";
+      if (legendEl) {
+        if (isPromoTab) {
+          legendEl.innerHTML = `
+            <span style="color:#10b981;">★</span> 10% 이상 &nbsp;|&nbsp; 
+            <span style="color:#f97316;">★</span> 프로모션 진행 &nbsp;|&nbsp; 
+            <span style="background:#eff6ff; border:1px solid #93c5fd; color:#1e40af; padding:2px 6px; border-radius:4px; font-weight:700;"><span style="color:#10b981;">★</span><span style="color:#f97316;">★</span> 10% 이상+프로모션</span>`;
+        } else {
+          legendEl.innerHTML = `<span style="color:#10b981;">★</span> 10% 이상`;
+        }
+      }
+
+      if (isYearView) {
+        tableCardTitle.innerHTML = `
+          <i class="fa-solid fa-list-check" style="color: var(--primary); margin-right: 8px;"></i>
+          ${currentMonth} 전체 ${teamData.team_name} - 전체 제휴 채널 (13개사) 누적 유입 현황
+        `;
+      } else {
+        tableCardTitle.innerHTML = `
+          <i class="fa-solid fa-list-check" style="color: var(--primary); margin-right: 8px;"></i>
+          ${currentMonth} ${teamData.team_name} - ${tabDef.title} 유입 현황
+        `;
+      }
+
+      let filteredRoutes = teamData.routes.filter(r => {
+        if (!searchQuery) return true;
+        return r.route.toLowerCase().includes(searchQuery);
+      });
+
+      filteredRoutes.sort((a, b) => {
+        let valA, valB;
+        if (sortColumn === "total_count") {
+          valA = a.total_count;
+          valB = b.total_count;
+        } else if (sortColumn === "route") {
+          valA = a.route;
+          valB = b.route;
+        } else {
+          valA = a.channels[sortColumn]?.count || 0;
+          valB = b.channels[sortColumn]?.count || 0;
+        }
+
+        if (valA < valB) return sortAscending ? -1 : 1;
+        if (valA > valB) return sortAscending ? 1 : -1;
+        return 0;
+      });
+
+      let html = `
+        <table class="dashboard-table">
+          <thead>
+            <tr>
+              <th class="sortable" style="white-space: nowrap;" onclick="handleSort('route')">노선 ${getSortIcon('route')}</th>
+              <th class="number-col sortable" style="white-space: nowrap;" onclick="handleSort('total_count')">전체 ${getSortIcon('total_count')}</th>
+              ${isYearView ? `<th class="number-col sortable" style="white-space: nowrap; color: #64748b;" onclick="handleSort('직판')">직판 ${getSortIcon('직판')}</th>` : ''}
+      `;
+
+      channels.forEach(ch => {
+        const headerLabel = isYearView ? ch.name : (ch.name + " 인원(비중)");
+        html += `<th class="number-col sortable" style="white-space: nowrap;" onclick="handleSort('${ch.key}')">${headerLabel} ${getSortIcon(ch.key)}</th>`;
+      });
+
+      html += `</tr></thead><tbody>`;
+
+      filteredRoutes.forEach(r => {
+        html += `<tr>`;
+        html += `<td style="font-weight: 700; color: var(--text-heading); white-space: nowrap;">${r.route}</td>`;
+        
+        html += `
+          <td class="number-col clickable-cell" 
+              title="예약 연월별 상세 보기"
+              onclick="openRouteDetail('${r.route}', '전체', '전체')">
+            <span style="font-weight: 800; font-size: 15px;">${r.total_count.toLocaleString('ko-KR')}</span>
+          </td>`;
+
+        if (isYearView) {
+          const dData = r.channels['직판'] || { count: 0, ratio: 0 };
+          let directCount = dData.count;
+          let directRatio = (dData.ratio * 100).toFixed(0);
+          if (dData.count === 0 && dData.ratio === 0 && r.total_count > 0) {
+            const affiliateTotal = ALL_13_CHANNELS.reduce((sum, ch) => sum + (r.channels[ch.key]?.count || 0), 0);
+            directCount = r.total_count - affiliateTotal;
+            directRatio = (directCount / r.total_count * 100).toFixed(0);
+          }
+
+          html += `
+            <td class="number-col clickable-cell" 
+                title="${r.route} - 직판 예약 연월별 상세 보기"
+                onclick="openRouteDetail('${r.route}', '직판', '직판')">
+              <span class="ratio-badge normal-ratio" style="background: rgba(100,116,139,0.12); color: #64748b;">${directCount.toLocaleString('ko-KR')} (${directRatio}%)</span>
+            </td>`;
+        }
+
+        channels.forEach(ch => {
+          const cData = r.channels[ch.key] || { count: 0, ratio: 0 };
+          const countStr = cData.count.toLocaleString('ko-KR');
+          const ratioPct = (cData.ratio * 100).toFixed(0);
+          
+          const isHighRatio = (cData.ratio >= 0.10);
+          const hasPromo = hasPromotionForCell(currentMonth, teamData.team_name, ch.key, r.route);
+
+          let badgeClass = "zero-ratio";
+          let starHtml = "";
+
+          if (cData.count === 0) {
+            badgeClass = "zero-ratio";
+            if (hasPromo) {
+              starHtml = ` <i class="fa-solid fa-star" style="color:#f97316; font-size:10px;"></i>`;
+            }
+          } else {
+            if (isHighRatio && hasPromo) {
+              badgeClass = "promo-high-dual";
+              starHtml = ` <i class="fa-solid fa-star" style="color:#10b981; font-size:10px;"></i><i class="fa-solid fa-star" style="color:#f97316; font-size:10px; margin-left:1px;"></i>`;
+            } else if (isHighRatio) {
+              badgeClass = "high-ratio";
+              starHtml = ` <i class="fa-solid fa-star" style="color:#10b981; font-size:10px;"></i>`;
+            } else if (hasPromo) {
+              badgeClass = "promo-only";
+              starHtml = ` <i class="fa-solid fa-star" style="color:#f97316; font-size:10px;"></i>`;
             } else {
-                document.body.style.overflow = 'hidden'; // Prevent scrolling while locked
+              badgeClass = "normal-ratio";
             }
+          }
 
-            passwordForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                if (passwordInput.value === CORRECT_PASSWORD) {
-                    sessionStorage.setItem('isAuthenticated', 'true');
-                    passwordOverlay.style.opacity = '0';
-                    setTimeout(() => {
-                        passwordOverlay.style.display = 'none';
-                        document.body.style.overflow = 'auto'; // Restore scrolling
-                    }, 300);
-                } else {
-                    passwordError.classList.remove('hidden');
-                    passwordInput.value = '';
-                    passwordInput.focus();
-                }
-            });
+          const promoTitle = hasPromo ? " (프로모션 진행중)" : "";
 
-            const mainTitle = document.getElementById('main-title');
-            const noticeText = document.getElementById('notice-text');
-            const weekSelect = document.getElementById('week-select');
-            const dataSourceSelect = document.getElementById('data-source-select');
-
-            // 초기 텍스트 설정
-            mainTitle.innerHTML = `노선별 예약 <span class="text-xl font-normal text-blue-200 ml-2" id="sub-title"></span>`;
-            noticeText.textContent = "주차를 선택해주세요";
-
-            // Generate possible week labels dynamically (e.g. 1월 1주차 ~ 12월 5주차)
-            // To maintain performance, we only check realistic recent/upcoming months
-            // Here, we check 1월 ~ 3월 as an initial search window. 
-            // You can easily expand this array in the future.
-            const possibleWeeks = [];
-            for (let month = 1; month <= 12; month++) {
-                possibleWeeks.push(`${month}월 전체`);
-                for (let week = 1; week <= 5; week++) {
-                    possibleWeeks.push(`${month}월 ${week}주차`);
-                }
-            }
-
-            // Check which JSON files actually exist
-            // (Using Promise.all logic to fetch and verify quickly)
-            async function buildDropdownOptions() {
-                // To avoid sending 60 requests all at once which could be bad practice, 
-                // we'll fetch them individually or in small batches. 
-                // For a localized tool, simple sequential or chunked checking is fine.
-                const foundWeeks = [];
-                for (let w of possibleWeeks) {
-                    try {
-                        const res = await fetch(`${w}.json`, { method: 'HEAD' });
-                        if (res.ok) {
-                            foundWeeks.push(w);
-                        }
-                    } catch (e) {
-                        // File does not exist or fetch failed, move on
-                    }
-                }
-
-                // If none found by HEAD (some servers block HEAD), we fallback to our manual fallback logic, or just assume standard.
-                // However, since we are dealing with local/GitHub Pages, HEAD works.
-                if (foundWeeks.length > 0) {
-                    existingWeeks = foundWeeks; // 최근 3주 기능을 위해 외부 변수에 저장
-                    foundWeeks.forEach(w => {
-                        const opt = document.createElement('option');
-                        opt.value = w;
-                        opt.textContent = w;
-                        weekSelect.appendChild(opt);
-                    });
-                } else {
-                    // Fallback just in case fetch HEAD is blocked by security policies
-                    console.warn("Could not auto-detect files. Ensure they exist and are accessible.");
-                    const fallbackWeeks = ['1월 4주차', '2월 1주차', '2월 2주차', '2월 3주차', '2월 4주차', '2월 전체'];
-                    existingWeeks = fallbackWeeks; // 최근 3주 기능을 위해 외부 변수에 저장
-                    fallbackWeeks.forEach(w => {
-                        const opt = document.createElement('option');
-                        opt.value = w;
-                        opt.textContent = w;
-                        weekSelect.appendChild(opt);
-                    });
-                }
-            }
-
-            // Wait for dropdown to build
-            await buildDropdownOptions();
-
-            function loadWeekData(week) {
-                if (!week) {
-                    mainTitle.innerHTML = `노선별 예약 <span class="text-xl font-normal text-blue-200 ml-2" id="sub-title"></span>`;
-                    noticeText.textContent = "주차를 선택해주세요";
-                    globalWorkData.summary = [];
-                    globalWorkData.shopping = [];
-                    renderDashboard([]);
-                    clearInsights();
-                    return;
-                }
-
-                // 타이틀 업데이트
-                mainTitle.innerHTML = `${week} 예약현황 <span class="text-xl font-normal text-blue-200 ml-2" id="sub-title"></span>`;
-                noticeText.textContent = `※ 본 데이터는 ${week} '출발'이 아닌 ${week}에 '예약'이 접수된 기준입니다. 지점 접수는 제외하였습니다.`;
-
-                const jsonFileName = `${week}.json`;
-
-                fetch(jsonFileName)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        // 1. Appy Metadata (Dynamic Titles, JSON 내부에 있다면 덮어씀)
-                        if (data.metadata) {
-                            mainTitle.innerHTML = `${data.metadata.mainTitle} <span class="text-xl font-normal text-blue-200 ml-2" id="sub-title">(${data.metadata.subTitle})</span>`;
-                            noticeText.textContent = data.metadata.notice;
-                        }
-
-                        // 2. Parse JS arrays using parseRawJSON
-                        const summaryJson = data["홈쇼핑 제외시"] || [];
-                        const shoppingJson = data["홈쇼핑 포함시"] || [];
-
-                        if (summaryJson.length === 0 && shoppingJson.length === 0) {
-                            alert(`${week} 데이터가 비어 있습니다.`);
-                            return;
-                        }
-
-                        globalWorkData.summary = parseRawJSON(summaryJson);
-                        globalWorkData.shopping = parseRawJSON(shoppingJson);
-
-                        // Show currently selected data source
-                        const mode = dataSourceSelect.value;
-                        const dataToShow = globalWorkData[mode] || [];
-                        renderDashboard(dataToShow);
-                    })
-                    .catch(error => {
-                        console.error('Error fetching data:', error);
-                        alert(`데이터를 불러오는 중 오류가 발생했습니다.\n'${jsonFileName}' 파일이 같은 폴더에 있는지 확인해 주세요.`);
-                        globalWorkData.summary = [];
-                        globalWorkData.shopping = [];
-                        renderDashboard([]);
-                        clearInsights();
-                    });
-            }
-
-            function clearInsights() {
-                const seContainer = document.getElementById('insight-se-asia');
-                const neContainer = document.getElementById('insight-ne-asia');
-                const longContainer = document.getElementById('insight-long-haul');
-                const msg = '<span class="text-xl mt-1">💡</span><span class="font-medium self-center ml-2 text-slate-500">데이터가 없습니다.</span>';
-                if (seContainer) seContainer.innerHTML = msg;
-                if (neContainer) neContainer.innerHTML = msg;
-                if (longContainer) longContainer.innerHTML = msg;
-            }
-
-            weekSelect.addEventListener('change', (e) => {
-                // 멀티위크 모드 해제 → 싱글 뷰로 전환
-                if (currentViewMode.startsWith('multi3')) {
-                    resetToSingleWeek();
-                    // 멀티위크 차트 인스턴스 정리
-                    Object.values(multiChartInstances).forEach(c => c && c.destroy());
-                    multiChartInstances = {};
-                    document.getElementById('multi-week-view').innerHTML = '';
-                }
-                loadWeekData(e.target.value);
-            });
-
-            dataSourceSelect.addEventListener('change', (e) => {
-                const mode = e.target.value;
-                if (currentViewMode === 'multi3_sum' && currentMultiWeekDatasets) {
-                    renderSumDashboard();
-                    return;
-                }
-                if (currentViewMode === 'multi3_detail' && currentMultiWeekDatasets) {
-                    renderMultiWeekDashboard(currentMultiWeekDatasets, mode);
-                    return;
-                }
-                const dataToShow = globalWorkData[mode];
-                if (!dataToShow || dataToShow.length === 0) {
-                    if (weekSelect.value) alert("해당 조건의 데이터가 없습니다.");
-                    return;
-                }
-                renderDashboard(dataToShow);
-            });
-
-            // 최근 3주 버튼 클릭 핸들러
-            const recent3WeeksBtn = document.getElementById('recent-3weeks-btn');
-            const detailBtn = document.getElementById('mw-detail-btn');
-            const detailToggleContainer = document.getElementById('detail-toggle-container');
-
-            recent3WeeksBtn.addEventListener('click', async () => {
-                if (existingWeeks.length === 0) {
-                    alert('주차 데이터를 먼저 불러와야 합니다.');
-                    return;
-                }
-
-                // "전체" 제외 후 가장 최근 3개 주차
-                const filteredWeeks = existingWeeks.filter(w => !w.includes('전체'));
-                if (filteredWeeks.length === 0) {
-                    alert('주차 데이터가 없습니다.');
-                    return;
-                }
-                const recentWeeks = filteredWeeks.slice(-3);
-
-                weekSelect.value = '';
-                currentViewMode = 'multi3_sum'; // 기본은 합산 뷰
-                
-                // 최근 3주 조회 버튼 활성화 색상 변경 (teal)
-                recent3WeeksBtn.className = "bg-teal-600 hover:bg-teal-700 text-white text-base font-bold py-3 px-5 rounded-lg shadow-sm transition whitespace-nowrap cursor-pointer ring-4 ring-teal-100";
-
-                // 자세히 보기 토글 컨테이너 노출 및 버튼 초기화
-                detailToggleContainer.classList.remove('hidden');
-                detailBtn.className = "bg-slate-200 hover:bg-slate-300 text-slate-700 text-base font-bold py-2.5 px-6 rounded-lg shadow-sm transition whitespace-nowrap cursor-pointer";
-
-                // 헤더 업데이트
-                mainTitle.innerHTML = `최근 3주 예약현황 <span class="text-xl font-normal text-blue-200 ml-2" id="sub-title"></span>`;
-                noticeText.textContent = `최근 3주 (${recentWeeks.join(' / ')}) 예약 현황입니다.`;
-
-                // 뷰 전환
-                document.getElementById('single-week-view').classList.remove('hidden');
-                document.getElementById('multi-week-view').classList.add('hidden');
-
-                try {
-                    const allDatasets = await Promise.all(
-                        recentWeeks.map(async (week) => {
-                            const response = await fetch(`${week}.json`);
-                            if (!response.ok) {
-                                throw new Error(`'${week}.json' 파일을 찾을 수 없거나 불러올 수 없습니다. (상태 코드: ${response.status})`);
-                            }
-                            const data = await response.json();
-                            return {
-                                week,
-                                summary: parseRawJSON(data['홈쇼핑 제외시'] || []),
-                                shopping: parseRawJSON(data['홈쇼핑 포함시'] || [])
-                            };
-                        })
-                    );
-
-                    currentMultiWeekDatasets = allDatasets;
-                    renderSumDashboard();
-
-                } catch (error) {
-                    console.error('최근 3주 로드 오류:', error);
-                    alert(`최근 3주 데이터를 불러오는 중 오류가 발생했습니다.\n\n상세 오류: ${error.message}`);
-                    resetToSingleWeek();
-                }
-            });
-
-            // 자세히 보기 토글 버튼 리스너
-            detailBtn.addEventListener('click', () => {
-                const filteredWeeks = existingWeeks.filter(w => !w.includes('전체'));
-                const recentWeeks = filteredWeeks.slice(-3);
-
-                if (currentViewMode === 'multi3_sum') {
-                    // 자세히 보기 활성화
-                    currentViewMode = 'multi3_detail';
-                    detailBtn.className = "bg-blue-600 hover:bg-blue-700 text-white text-base font-bold py-2.5 px-6 rounded-lg shadow-sm transition whitespace-nowrap cursor-pointer";
-
-                    document.getElementById('single-week-view').classList.add('hidden');
-                    document.getElementById('multi-week-view').classList.remove('hidden');
-                    renderMultiWeekDashboard(currentMultiWeekDatasets, dataSourceSelect.value);
-                } else if (currentViewMode === 'multi3_detail') {
-                    // 자세히 보기 비활성화 (합산 뷰로 복귀)
-                    currentViewMode = 'multi3_sum';
-                    detailBtn.className = "bg-slate-200 hover:bg-slate-300 text-slate-700 text-base font-bold py-2.5 px-6 rounded-lg shadow-sm transition whitespace-nowrap cursor-pointer";
-
-                    document.getElementById('multi-week-view').classList.add('hidden');
-                    document.getElementById('single-week-view').classList.remove('hidden');
-                    renderSumDashboard();
-                }
-            });
-
-            function resetToSingleWeek() {
-                currentViewMode = 'single';
-                recent3WeeksBtn.className = "bg-slate-600 hover:bg-slate-700 text-white text-base font-bold py-3 px-5 rounded-lg shadow-sm transition whitespace-nowrap cursor-pointer";
-                detailToggleContainer.classList.add('hidden');
-                document.getElementById('single-week-view').classList.remove('hidden');
-                document.getElementById('multi-week-view').classList.add('hidden');
-            }
-
-            // 처음 접속 시에는 선택된 주차가 없으므로 빈 화면으로 시작
-            renderDashboard([]);
-            clearInsights();
+          html += `
+            <td class="number-col clickable-cell" 
+                title="${r.route} - ${ch.name} 상세 보기${promoTitle}"
+                onclick="openRouteDetail('${r.route}', '${ch.key}', '${ch.name}')">
+              <span class="ratio-badge ${badgeClass}">${countStr} (${ratioPct}%)${starHtml}</span>
+            </td>`;
         });
 
-        // =============================================
-        // 71개 노선 마스터 카테고리 정의
-        // =============================================
-        const ROUTE_CATEGORY_MAP = {
-            // 동남아 (se_asia): 26개 노선
-            '다낭/호이안': 'se_asia', '다낭': 'se_asia', '나트랑': 'se_asia', '푸꾸옥': 'se_asia', 
-            '나트랑/달랏': 'se_asia', '하노이': 'se_asia', '호치민': 'se_asia', '베트남/캄보디아': 'se_asia', 
-            '캄보디아': 'se_asia', '대만': 'se_asia', '대만 연계': 'se_asia', '홍콩/마카오': 'se_asia', 
-            '싱가포르': 'se_asia', '싱가포르 연계': 'se_asia', '보홀': 'se_asia', '세부': 'se_asia', 
-            '보라카이': 'se_asia', '치앙마이': 'se_asia', '라오스': 'se_asia', '방콕/파타야': 'se_asia', 
-            '방콕': 'se_asia', '코타키나발루': 'se_asia', '브루나이': 'se_asia', '발리': 'se_asia', 
-            '마나도': 'se_asia', '쿠알라룸푸르': 'se_asia',
+        html += `</tr>`;
+      });
 
-            // 동북아 (ne_asia): 21개 노선
-            '장가계': 'ne_asia', '태항산': 'ne_asia', '서안(차카염호/칠채산)': 'ne_asia', '상해': 'ne_asia', 
-            '곤명': 'ne_asia', '청도': 'ne_asia', '망산': 'ne_asia', '대련': 'ne_asia', 
-            '북경': 'ne_asia', '위해': 'ne_asia', '하문/심천': 'ne_asia', '백두산': 'ne_asia', 
-            '천진': 'ne_asia', '몽골': 'ne_asia', '중앙아시아': 'ne_asia', '북해도': 'ne_asia', 
-            '오사카': 'ne_asia', '규슈': 'ne_asia', '오키나와': 'ne_asia', '동경': 'ne_asia', 
-            '다카마쓰': 'ne_asia',
+      const teamTotal = teamData.team_total;
+      html += `<tr class="total-row">`;
+      html += `<td style="white-space: nowrap;">전체 (팀 합계)</td>`;
+      html += `
+        <td class="number-col clickable-cell" 
+            title="팀 전체 상세 보기"
+            onclick="openTeamTotalDetail('전체', '전체')">
+          <span style="font-weight: 800; font-size: 16px; color: var(--primary);">${teamTotal.total_count.toLocaleString('ko-KR')}</span>
+        </td>`;
 
-            // 장거리 (long_haul): 24개 노선
-            '서유럽': 'long_haul', '스페인/포르투갈': 'long_haul', '북유럽': 'long_haul', 
-            '동유럽': 'long_haul', '동유럽 연계': 'long_haul', '발칸/동유럽': 'long_haul', 
-            '발칸': 'long_haul', '발칸 연계': 'long_haul', '이집트': 'long_haul', 
-            '튀르키예': 'long_haul', '튀르키예 연계': 'long_haul', '두바이': 'long_haul', 
-            '두바이/아부다비': 'long_haul', '두바이/아부다비 연계': 'long_haul', '그리스': 'long_haul', 
-            '인도': 'long_haul', '코카서스': 'long_haul', '중남미': 'long_haul', 
-            '미국': 'long_haul', '미주 연계': 'long_haul', '캐나다': 'long_haul', 
-            '하와이': 'long_haul', '호주/뉴질랜드': 'long_haul', '괌/사이판': 'long_haul'
+      if (isYearView) {
+        const dData = teamTotal.channels['직판'] || { count: 0, ratio: 0 };
+        let teamDirectCount = dData.count;
+        let teamDirectRatio = (dData.ratio * 100).toFixed(0);
+        if (dData.count === 0 && dData.ratio === 0 && teamTotal.total_count > 0) {
+          const teamAffiliateTotal = ALL_13_CHANNELS.reduce((sum, ch) => sum + (teamTotal.channels[ch.key]?.count || 0), 0);
+          teamDirectCount = teamTotal.total_count - teamAffiliateTotal;
+          teamDirectRatio = (teamDirectCount / teamTotal.total_count * 100).toFixed(0);
+        }
+
+        html += `
+          <td class="number-col clickable-cell" 
+              title="팀 직판 상세 보기"
+              onclick="openTeamTotalDetail('직판', '직판')">
+            <span class="ratio-badge normal-ratio" style="background: rgba(100,116,139,0.12); color: #64748b;">${teamDirectCount.toLocaleString('ko-KR')} (${teamDirectRatio}%)</span>
+          </td>`;
+      }
+
+      channels.forEach(ch => {
+        const cData = teamTotal.channels[ch.key] || { count: 0, ratio: 0 };
+        const countStr = cData.count.toLocaleString('ko-KR');
+        const ratioPct = (cData.ratio * 100).toFixed(0);
+        
+        const isHighRatio = (cData.ratio >= 0.10);
+        const hasPromo = hasPromotionForCell(currentMonth, teamData.team_name, ch.key, "전체");
+
+        let badgeClass = "zero-ratio";
+        let starHtml = "";
+
+        if (cData.count === 0) {
+          badgeClass = "zero-ratio";
+          if (hasPromo) {
+            starHtml = ` <i class="fa-solid fa-star" style="color:#f97316; font-size:10px;"></i>`;
+          }
+        } else {
+          if (isHighRatio && hasPromo) {
+            badgeClass = "promo-high-dual";
+            starHtml = ` <i class="fa-solid fa-star" style="color:#10b981; font-size:10px;"></i><i class="fa-solid fa-star" style="color:#f97316; font-size:10px; margin-left:1px;"></i>`;
+          } else if (isHighRatio) {
+            badgeClass = "high-ratio";
+            starHtml = ` <i class="fa-solid fa-star" style="color:#10b981; font-size:10px;"></i>`;
+          } else if (hasPromo) {
+            badgeClass = "promo-only";
+            starHtml = ` <i class="fa-solid fa-star" style="color:#f97316; font-size:10px;"></i>`;
+          } else {
+            badgeClass = "normal-ratio";
+          }
+        }
+
+        const promoTitle = hasPromo ? " (프로모션 진행중)" : "";
+
+        html += `
+          <td class="number-col clickable-cell" 
+              title="팀 ${ch.name} 상세 보기${promoTitle}"
+              onclick="openTeamTotalDetail('${ch.key}', '${ch.name}')">
+            <span class="ratio-badge ${badgeClass}">${countStr} (${ratioPct}%)${starHtml}</span>
+          </td>`;
+      });
+
+      html += `</tr></tbody></table>`;
+      tableContainer.innerHTML = html;
+
+      renderBarChart(filteredRoutes, channels, isYearView);
+      updateInsight();
+    }
+
+    function updateInsight() {
+      const insightEl = document.getElementById("insight-text");
+      if (!insightEl) return;
+
+      const { isYearView, teamData } = getSelectionData();
+      if (!teamData) {
+        insightEl.innerHTML = "";
+        return;
+      }
+
+      // Group routes where (count > 0 AND ratio >= 0.10 AND hasPromo) by Channel
+      const successMap = {};
+      const activeChannels = isYearView ? ALL_13_CHANNELS : (TAB_DEFINITIONS[currentTab] ? TAB_DEFINITIONS[currentTab].channels : ALL_13_CHANNELS);
+
+      teamData.routes.forEach(r => {
+        activeChannels.forEach(ch => {
+          const cData = r.channels[ch.key] || { count: 0, ratio: 0 };
+          const hasPromo = hasPromotionForCell(currentMonth, teamData.team_name, ch.key, r.route);
+          if (cData.count > 0 && cData.ratio >= 0.10 && hasPromo) {
+            if (!successMap[ch.name]) {
+              successMap[ch.name] = [];
+            }
+            if (!successMap[ch.name].includes(r.route)) {
+              successMap[ch.name].push(r.route);
+            }
+          }
+        });
+      });
+
+      const channelNames = Object.keys(successMap);
+      if (channelNames.length === 0) {
+        insightEl.innerHTML = `<p style="font-size: 14px; color: var(--text-muted); margin: 4px 0 0 0;">현재 조건(노선별 인원 비중 10% 이상 &amp; 프로모션 진행)에 해당하는 제휴사 및 노선이 없습니다.</p>`;
+      } else {
+        let html = `
+          <div style="margin-top: 4px; margin-bottom: 6px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 16px; font-weight: 700; color: #1e293b;">프로모션을 통한 유입이 활발한 제휴 채널·노선이에요!</span>
+            <span style="font-size: 13px; font-weight: 500; color: #64748b;">(노선별 인원 비중 10% 이상 &amp; 프로모션 진행)</span>
+          </div>
+          <ol class="insight-list" style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.8; color: var(--text-heading); font-weight: 500;">`;
+        channelNames.forEach((chName) => {
+          const routeStr = successMap[chName].join(", ");
+          html += `<li><strong>${chName}</strong> : ${routeStr}</li>`;
+        });
+        html += `</ol>`;
+        insightEl.innerHTML = html;
+      }
+    }
+
+    function handleSort(colKey) {
+      if (sortColumn === colKey) {
+        sortAscending = !sortAscending;
+      } else {
+        sortColumn = colKey;
+        sortAscending = false;
+      }
+      renderTableAndChart();
+    }
+
+    function getSortIcon(colKey) {
+      if (sortColumn !== colKey) return `<i class="fa-solid fa-sort" style="opacity: 0.3;"></i>`;
+      return sortAscending ? `<i class="fa-solid fa-sort-up" style="color: var(--primary);"></i>` : `<i class="fa-solid fa-sort-down" style="color: var(--primary);"></i>`;
+    }
+
+    function renderBarChart(routesData, channels, isYearView) {
+      const topRoutes = routesData.slice(0, 10);
+      const categories = topRoutes.map(r => r.route);
+
+      const series = channels.map(ch => {
+        return {
+          name: ch.name,
+          data: topRoutes.map(r => r.channels[ch.key]?.count || 0)
         };
+      });
 
-        // 과거 노선명 -> 71개 노선명 매핑 테이블
-        const ROUTE_NAME_MAP = {
-            '싱가폴': '싱가포르',
-            '서안': '서안(차카염호/칠채산)',
-            '하문': '하문/심천',
-            '심천': '하문/심천',
-            '미서부': '미국',
-            '대양주': '호주/뉴질랜드'
+      const colors = channels.map(ch => CHANNEL_COLORS[ch.key] || CHANNEL_COLORS[ch.name] || '#2563eb');
+
+      const options = {
+        series: series,
+        chart: {
+          type: 'bar',
+          height: 380,
+          stacked: true,
+          toolbar: { show: false }
+        },
+        plotOptions: {
+          bar: {
+            horizontal: false,
+            columnWidth: '50%',
+            borderRadius: 4
+          }
+        },
+        xaxis: {
+          categories: categories,
+          labels: {
+            style: { fontFamily: 'Outfit, sans-serif', fontSize: '13px' }
+          }
+        },
+        yaxis: {
+          title: { text: '유입 인원(명)' },
+          labels: { formatter: (val) => val.toLocaleString('ko-KR') }
+        },
+        legend: {
+          position: 'top',
+          fontFamily: 'Outfit, sans-serif'
+        },
+        fill: { opacity: 1 },
+        colors: colors
+      };
+
+      const chartTitleEl = document.getElementById("chart-card-title");
+      if (chartTitleEl) {
+        chartTitleEl.innerHTML = isYearView ?
+          `<i class="fa-solid fa-chart-column" style="color: var(--primary); margin-right: 8px;"></i> ${currentMonth} 노선별 제휴 채널별 유입 누적 그래프` :
+          `<i class="fa-solid fa-chart-column" style="color: var(--primary); margin-right: 8px;"></i> 노선별 제휴 채널 유입 비중 그래프`;
+      }
+
+      if (barChartInstance) {
+        barChartInstance.destroy();
+      }
+
+      barChartInstance = new ApexCharts(document.querySelector("#apex-bar-chart"), options);
+      barChartInstance.render();
+    }
+
+    // Component 2: 제휴 비중 트렌드 (Line Chart with Route Filter & Dual Y-Axis)
+    function populateTrendRouteDropdown(teamData) {
+      const selectEl = document.getElementById("trend-route-select");
+      if (!selectEl) return;
+
+      selectEl.innerHTML = "";
+
+      const allOpt = document.createElement("option");
+      allOpt.value = "전체";
+      allOpt.textContent = "전체 노선 (팀 합계)";
+      selectEl.appendChild(allOpt);
+
+      const sortedRoutes = [...teamData.routes].sort((a, b) => b.total_count - a.total_count);
+      sortedRoutes.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r.route;
+        opt.textContent = `${r.route} (${r.total_count.toLocaleString('ko-KR')}명)`;
+        selectEl.appendChild(opt);
+      });
+
+      if (!sortedRoutes.some(r => r.route === selectedTrendRoute) && selectedTrendRoute !== "전체") {
+        selectedTrendRoute = "전체";
+      }
+      selectEl.value = selectedTrendRoute;
+    }
+
+    function renderYearlyTrendLineChart(passedTeamData) {
+      const chartEl = document.querySelector("#apex-yearly-trend-line-chart");
+      if (!chartEl) return;
+
+      let teamData = passedTeamData;
+      if (!teamData) {
+        const res = getSelectionData();
+        teamData = res.teamData;
+      }
+      if (!teamData) return;
+
+      let trendList = [];
+      if (selectedTrendRoute === "전체") {
+        trendList = teamData.team_total.monthly_inflow_trend || [];
+      } else {
+        const rObj = teamData.routes.find(r => r.route === selectedTrendRoute);
+        trendList = rObj ? (rObj.monthly_inflow_trend || []) : (teamData.team_total.monthly_inflow_trend || []);
+      }
+
+      const categories = trendList.map(t => t.month);
+
+      // 5 Line Series: 직판, 네이버, 지마켓/옥션, 트립스토어, 마이리얼트립
+      const lineDefinitions = [
+        { key: '직판', name: '직판', color: CHANNEL_COLORS['직판'] || '#64748b' },
+        { key: '네이버', name: '네이버', color: CHANNEL_COLORS['네이버'] || '#03c75a' },
+        { key: '지마켓/옥션', name: '지마켓/옥션', color: CHANNEL_COLORS['지마켓/옥션'] || 'rgb(0, 40, 176)' },
+        { key: '트립스토어', name: '트립스토어', color: CHANNEL_COLORS['트립스토어'] || '#ef3737' },
+        { key: '마이리얼트립', name: '마이리얼트립', color: CHANNEL_COLORS['마이리얼트립'] || '#2b96ed' }
+      ];
+
+      const series = lineDefinitions.map(def => {
+        return {
+          name: def.name,
+          data: trendList.map(t => (t.ratios && t.ratios[def.key] !== undefined) ? t.ratios[def.key] : 0.0)
         };
+      });
 
-        function parseRawJSON(jsonArray) {
-            if (!jsonArray || jsonArray.length === 0) return [];
-            const resultMap = {};
+      const colors = lineDefinitions.map(def => def.color);
 
-            jsonArray.forEach((row) => {
-                const rawRoute = row["노선"];
-                if (!rawRoute || rawRoute === "합계" || rawRoute === "Total" || rawRoute === "Unknown") return;
+      // Single Y-Axis: always start from 0 to prevent clipping, max auto from data
+      const allValues = series.flatMap(s => s.data).filter(v => v !== null && v !== undefined);
+      const yMax = allValues.length > 0 ? Math.min(100, Math.ceil(Math.max(...allValues) * 1.05)) : 100;
 
-                // 과거 노선명 매핑 적용 (싱가폴->싱가포르, 하문/심천 통합 등)
-                const route = ROUTE_NAME_MAP[rawRoute] || rawRoute;
-
-                const val2025 = parseFloat(row["25년_예약인원"]) || parseFloat(row["25년_인원"]) || 0;
-                const val2026 = parseFloat(row["26년_예약인원"]) || parseFloat(row["26년_인원"]) || 0;
-
-                // 마스터 ROUTE_CATEGORY_MAP 기반 카테고리 설정
-                const category = ROUTE_CATEGORY_MAP[route] || 'long_haul';
-
-                if (!resultMap[route]) {
-                    resultMap[route] = {
-                        route: route,
-                        v2025: 0,
-                        v2026: 0,
-                        category: category
-                    };
-                }
-
-                resultMap[route].v2025 += val2025;
-                resultMap[route].v2026 += val2026;
-            });
-
-            return Object.values(resultMap);
-        }
-
-        function renderDashboard(data) {
-            // AI Insights (Run first to ensure visibility)
-            try {
-                generateInsights(data);
-            } catch (e) {
-                console.error("Insights Error:", e);
-                const errBox = document.getElementById('insight-se-asia');
-                if (errBox) errBox.innerHTML = `<span class="text-red-500 font-bold">Error: ${e.message}</span>`;
-            }
-
-            // Totals
-            const total2025 = data.reduce((sum, d) => sum + d.v2025, 0);
-            const total2026 = data.reduce((sum, d) => sum + d.v2026, 0);
-            const growth = total2025 ? ((total2026 - total2025) / total2025 * 100).toFixed(1) : 0;
-
-            document.getElementById('total-2025').textContent = Math.round(total2025).toLocaleString();
-            document.getElementById('total-2026').textContent = Math.round(total2026).toLocaleString();
-            document.getElementById('growth-rate').textContent = `${growth > 0 ? '+' : ''}${growth}%`;
-            document.getElementById('growth-rate').className = `text-3xl font-bold mt-2 ${growth >= 0 ? 'text-emerald-600' : 'text-red-600'}`;
-
-            // Split Data
-            const seData = data.filter(d => d.category === 'se_asia').sort((a, b) => b.v2026 - a.v2026);
-            const neData = data.filter(d => d.category === 'ne_asia').sort((a, b) => b.v2026 - a.v2026);
-            const longData = data.filter(d => d.category === 'long_haul').sort((a, b) => b.v2026 - a.v2026);
-
-            // Render Charts (No Total Bar)
-            renderChart('shortHaulChart', seData, 'se_asia');
-            renderChart('neAsiaChart', neData, 'ne_asia');
-            renderChart('longHaulChart', longData, 'long_haul');
-
-            // Render Tables
-            renderTables(data);
-        }
-
-        function renderChart(canvasId, chartData, instanceKey) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-
-            if (chartInstances[instanceKey]) {
-                chartInstances[instanceKey].destroy();
-            }
-
-            chartInstances[instanceKey] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartData.map(d => d.route),
-                    datasets: [
-                        {
-                            label: '2025년',
-                            data: chartData.map(d => d.v2025),
-                            backgroundColor: '#93C5FD',
-                            borderRadius: 4
-                        },
-                        {
-                            label: '2026년',
-                            data: chartData.map(d => d.v2026),
-                            backgroundColor: '#1E40AF',
-                            borderRadius: 4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: { mode: 'index', intersect: false }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#f1f5f9' },
-                            ticks: { callback: function (value) { if (value % 1 === 0) return value.toLocaleString(); } }
-                        },
-                        x: { grid: { display: false } }
-                    }
-                }
-            });
-        }
-
-        function renderTables(data) {
-            const sortGrowth = (list) => list.filter(d => (d.v2026 - d.v2025) >= 0).sort((a, b) => (b.v2026 - b.v2025) - (a.v2026 - a.v2025));
-            const sortDecline = (list) => list.filter(d => (d.v2026 - d.v2025) < 0).sort((a, b) => (a.v2026 - a.v2025) - (b.v2026 - b.v2025));
-            const getRate = (d) => d.v2025 ? ((d.v2026 - d.v2025) / d.v2025 * 100) : 0;
-            const sortRateHigh = (list) => list.filter(d => getRate(d) > 0).sort((a, b) => getRate(b) - getRate(a));
-            const sortRateLow = (list) => list.filter(d => getRate(d) < 0).sort((a, b) => getRate(a) - getRate(b));
-
-            const createRow = (d, isGrowth) => `
-                <tr class="bg-white border-b hover:bg-slate-50">
-                    <td class="px-3 py-2 font-medium text-slate-900">${d.route}</td>
-                    <td class="px-2 py-2">${Math.round(d.v2025).toLocaleString()}</td>
-                    <td class="px-2 py-2">${Math.round(d.v2026).toLocaleString()}</td>
-                    <td class="px-2 py-2 text-right font-bold ${isGrowth ? 'text-emerald-600' : 'text-red-500'}">
-                        ${Math.round(d.v2026 - d.v2025).toLocaleString()}
-                    </td>
-                </tr>
-            `;
-
-            const createRateRow = (d, isPositive) => {
-                const rate = d.v2025 ? ((d.v2026 - d.v2025) / d.v2025 * 100).toFixed(1) : "New";
-                const colorClass = isPositive ? 'text-purple-600' : 'text-rose-600';
-                return `
-                <tr class="bg-white border-b hover:bg-slate-50">
-                    <td class="px-3 py-2 font-medium text-slate-900">${d.route}</td>
-                    <td class="px-2 py-2">${Math.round(d.v2025).toLocaleString()}</td>
-                    <td class="px-2 py-2">${Math.round(d.v2026).toLocaleString()}</td>
-                    <td class="px-2 py-2 text-right font-bold ${colorClass}">
-                        ${rate > 0 ? '+' : ''}${rate}%
-                    </td>
-                </tr>
-                `;
-            };
-
-            const seData = data.filter(d => d.category === 'se_asia');
-            const neData = data.filter(d => d.category === 'ne_asia');
-            const longData = data.filter(d => d.category === 'long_haul');
-
-            // SE Asia
-            document.getElementById('short-growth-body').innerHTML = sortGrowth(seData).map(d => createRow(d, true)).join('');
-            document.getElementById('short-decline-body').innerHTML = sortDecline(seData).map(d => createRow(d, false)).join('');
-            document.getElementById('short-rate-high-body').innerHTML = sortRateHigh(seData).map(d => createRateRow(d, true)).join('');
-            document.getElementById('short-rate-low-body').innerHTML = sortRateLow(seData).map(d => createRateRow(d, false)).join('');
-
-            // NE Asia
-            document.getElementById('ne-growth-body').innerHTML = sortGrowth(neData).map(d => createRow(d, true)).join('');
-            document.getElementById('ne-decline-body').innerHTML = sortDecline(neData).map(d => createRow(d, false)).join('');
-            document.getElementById('ne-rate-high-body').innerHTML = sortRateHigh(neData).map(d => createRateRow(d, true)).join('');
-            document.getElementById('ne-rate-low-body').innerHTML = sortRateLow(neData).map(d => createRateRow(d, false)).join('');
-
-            // Long Haul
-            document.getElementById('long-growth-body').innerHTML = sortGrowth(longData).map(d => createRow(d, true)).join('');
-            document.getElementById('long-decline-body').innerHTML = sortDecline(longData).map(d => createRow(d, false)).join('');
-            document.getElementById('long-rate-high-body').innerHTML = sortRateHigh(longData).map(d => createRateRow(d, true)).join('');
-            document.getElementById('long-rate-low-body').innerHTML = sortRateLow(longData).map(d => createRateRow(d, false)).join('');
-        }
-
-        function generateInsights(data) {
-            if (!data || data.length === 0) return;
-
-            const total2025 = data.reduce((sum, d) => sum + d.v2025, 0);
-            const total2026 = data.reduce((sum, d) => sum + d.v2026, 0);
-            const growth = total2026 - total2025;
-            const growthRate = total2025 ? (growth / total2025 * 100).toFixed(1) : 0;
-
-            const sortedDiff = [...data].sort((a, b) => (b.v2026 - b.v2025) - (a.v2026 - a.v2025));
-            // Helper to analyze a region and return HTML
-            const getInsightHTML = (regionCode, regionName) => {
-                const regionData = data.filter(d => d.category === regionCode);
-                if (regionData.length === 0) return `<span class="text-xl">💡</span> <span class="font-medium self-center"><strong>${regionName}</strong>: 데이터 없음</span>`;
-
-                const v2025 = regionData.reduce((sum, d) => sum + d.v2025, 0);
-                const v2026 = regionData.reduce((sum, d) => sum + d.v2026, 0);
-                const diff = v2026 - v2025;
-                const rate = v2025 ? ((diff / v2025) * 100).toFixed(1) : 0;
-
-                // Find top growth route (by amount)
-                const sorted = [...regionData].sort((a, b) => (b.v2026 - b.v2025) - (a.v2026 - a.v2025));
-                const top = sorted[0];
-                const topDiff = Math.round(top.v2026 - top.v2025);
-
-                const status = diff >= 0 ? '증가' : '감소';
-                const sign = diff >= 0 ? '+' : '';
-                const colorClass = diff >= 0 ? 'text-blue-700' : 'text-red-700';
-
-                const safeVal2025 = (typeof v2025 === 'number' && !isNaN(v2025)) ? Math.round(v2025).toLocaleString() : '0';
-                const safeVal2026 = (typeof v2026 === 'number' && !isNaN(v2026)) ? Math.round(v2026).toLocaleString() : '0';
-
-                return `
-                    <span class="text-xl mt-1">💡</span>
-                    <div class="flex flex-col ml-1">
-                        <span class="font-medium text-slate-800">
-                            <strong>${regionName}</strong>: 
-                            전년 대비 <span class="${colorClass}">${sign}${rate}% ${status}</span> 
-                            <span class="text-sm text-slate-500 ml-1">(주도: ${top.route} ${sign}${topDiff.toLocaleString()}명)</span>
-                        </span>
-                        <span class="text-sm text-slate-600 mt-0.5">
-                            ㄴ 2025년 ${regionName} 예약 합계 ${safeVal2025}명 vs. 2026년 ${regionName} 합계 ${safeVal2026}명
-                        </span>
-                    </div>
-                `;
-            };
-
-            const seContainer = document.getElementById('insight-se-asia');
-            if (seContainer) seContainer.innerHTML = getInsightHTML('se_asia', '동남아');
-
-            const neContainer = document.getElementById('insight-ne-asia');
-            if (neContainer) neContainer.innerHTML = getInsightHTML('ne_asia', '동북아');
-
-            const longContainer = document.getElementById('insight-long-haul');
-            if (longContainer) longContainer.innerHTML = getInsightHTML('long_haul', '장거리');
-        }
-
-        function getAggregated3WeekData(datasets, mode) {
-            const routeMap = {};
-            datasets.forEach(d => {
-                const list = d[mode] || [];
-                list.forEach(item => {
-                    if (!routeMap[item.route]) {
-                        routeMap[item.route] = {
-                            route: item.route,
-                            v2025: 0,
-                            v2026: 0,
-                            category: item.category
-                        };
-                    }
-                    routeMap[item.route].v2025 += item.v2025;
-                    routeMap[item.route].v2026 += item.v2026;
-                });
-            });
-            return Object.values(routeMap);
-        }
-
-        function renderSumDashboard() {
-            const mode = document.getElementById('data-source-select').value;
-            const aggregated = getAggregated3WeekData(currentMultiWeekDatasets, mode);
-            renderDashboard(aggregated);
-        }
-
-        let multiChartInstances = {};
-
-        function getCategoryRoutes(weekData, regionKey) {
-            const routeMap = new Map();
-            weekData.forEach(wd => {
-                wd.data.filter(d => d.category === regionKey).forEach(d => {
-                    if (!routeMap.has(d.route)) {
-                        routeMap.set(d.route, 0);
-                    }
-                });
-            });
-            const latestData = weekData[weekData.length - 1].data.filter(d => d.category === regionKey);
-            latestData.forEach(d => {
-                routeMap.set(d.route, d.v2026);
-            });
-            const sorted = Array.from(routeMap.entries()).sort((a, b) => b[1] - a[1]);
-            return sorted.map(item => ({ route: item[0], v2026: item[1], category: regionKey }));
-        }
-
-        function renderMultiWeekDashboard(datasets, mode) {
-            const weekData = datasets.map(d => ({
-                week: d.week,
-                data: d[mode] || []
-            }));
-
-            Object.values(multiChartInstances).forEach(c => c && c.destroy());
-            multiChartInstances = {};
-
-            const mwView = document.getElementById('multi-week-view');
-
-            const summaryCards = weekData.map(wd => {
-                const t2025 = wd.data.reduce((s, d) => s + d.v2025, 0);
-                const t2026 = wd.data.reduce((s, d) => s + d.v2026, 0);
-                const gr = t2025 ? ((t2026 - t2025) / t2025 * 100).toFixed(1) : '0.0';
-                const grColor = Number(gr) >= 0 ? 'text-emerald-600' : 'text-red-600';
-                const grSign = Number(gr) > 0 ? '+' : '';
-                return `
-                <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
-                    <div class="flex items-center gap-2 mb-3">
-                        <span class="bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-full">${wd.week}</span>
-                    </div>
-                    <div class="grid grid-cols-3 gap-2 text-center">
-                        <div>
-                            <p class="text-xs text-slate-400 mb-1">전년 실적 (2025)</p>
-                            <p class="text-lg font-bold text-slate-700">${Math.round(t2025).toLocaleString()}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-slate-400 mb-1">당해 실적 (2026)</p>
-                            <p class="text-lg font-bold text-blue-600">${Math.round(t2026).toLocaleString()}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-slate-400 mb-1">신장률</p>
-                            <p class="text-lg font-bold ${grColor}">${grSign}${gr}%</p>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-
-            const regions = [
-                { key: 'se_asia',   label: '동남아', badgeClass: 'bg-blue-600',   sectionBg: 'bg-blue-50',   borderColor: 'border-blue-500' },
-                { key: 'ne_asia',   label: '동북아', badgeClass: 'bg-teal-600',   sectionBg: 'bg-teal-50',   borderColor: 'border-teal-500' },
-                { key: 'long_haul', label: '장거리', badgeClass: 'bg-indigo-600', sectionBg: 'bg-indigo-50', borderColor: 'border-indigo-500' }
-            ];
-
-            const regionsHTML = regions.map(region => {
-                const latestCatData = getCategoryRoutes(weekData, region.key);
-
-                const chartId2026 = `mw-chart-2026-${region.key}`;
-                const chartIdDiff = `mw-chart-diff-${region.key}`;
+      const options = {
+        series: series,
+        chart: {
+          type: 'line',
+          height: 360,
+          toolbar: { show: false },
+          zoom: { enabled: false },
+          events: {
+            legendClick: function(chartContext, seriesIndex, config) {
+              setTimeout(() => {
+                const globals = chartContext.w.globals;
+                const collapsedSeries = globals.collapsedSeriesIndices || [];
                 
-                const chartPanels = `
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-                        <p class="text-sm font-semibold text-slate-600 mb-2">📈 2026년 예약인원 추이</p>
-                        <div class="relative h-80 w-full"><canvas id="${chartId2026}"></canvas></div>
-                    </div>
-                    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-                        <p class="text-sm font-semibold text-slate-600 mb-2">📊 전년대비 증감(차이) 추이</p>
-                        <div class="relative h-80 w-full"><canvas id="${chartIdDiff}"></canvas></div>
-                    </div>
-                </div>`;
-
-                // 3주 트렌드 테이블
-                const trendTable = buildTrendTable(weekData, region.key, latestCatData);
-
-                return `
-                <div class="border-t border-slate-200 pt-8">
-                    <div class="flex items-center gap-3 mb-5">
-                        <span class="${region.badgeClass} text-white text-lg font-bold px-4 py-2 rounded-lg shadow-sm">${region.label}</span>
-                        <h3 class="text-xl font-bold text-slate-700">노선 예약 현황</h3>
-                    </div>
-                    ${chartPanels}
-                    ${trendTable}
-                </div>`;
-            }).join('');
-
-            // DOM에 삽입
-            mwView.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">${summaryCards}</div>
-                ${regionsHTML}`;
-
-            // ── 3. 차트 렌더링 (DOM 삽입 후) ─────────────────────────
-            regions.forEach(region => {
-                const latestCatData = weekData[weekData.length - 1].data
-                    .filter(d => d.category === region.key)
-                    .sort((a, b) => b.v2026 - a.v2026);
-                renderDetailedCharts(region.key, weekData, latestCatData);
-            });
-        }
-
-        // 주차별 2026년 예약인원 & 차이(증감) 2개 차트 렌더링
-        function renderDetailedCharts(regionKey, weekData, latestCatData) {
-            const routes = latestCatData.map(d => d.route);
-            const colors = ['#93C5FD', '#3B82F6', '#1D4ED8']; // 연파랑 -> 파랑 -> 진파랑
-
-            // 1. 2026년 예약인원 차트
-            const datasets2026 = weekData.map((wd, idx) => {
-                const catData = wd.data.filter(d => d.category === regionKey);
-                const vals = routes.map(route => {
-                    const found = catData.find(d => d.route === route);
-                    return found ? found.v2026 : 0;
+                let maxVal = 0;
+                series.forEach((s, idx) => {
+                  if (!collapsedSeries.includes(idx)) {
+                    const validData = s.data.filter(v => v !== null && v !== undefined && !isNaN(v));
+                    if (validData.length > 0) {
+                      const sMax = Math.max(...validData);
+                      if (sMax > maxVal) maxVal = sMax;
+                    }
+                  }
                 });
-                return {
-                    label: wd.week,
-                    data: vals,
-                    backgroundColor: colors[idx % colors.length],
-                    borderRadius: 4
-                };
-            });
 
-            const ctx2026 = document.getElementById(`mw-chart-2026-${regionKey}`).getContext('2d');
-            multiChartInstances[`2026-${regionKey}`] = new Chart(ctx2026, {
-                type: 'bar',
-                data: { labels: routes, datasets: datasets2026 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: { mode: 'index', intersect: false }
+                let newYMax = 10;
+                if (maxVal > 0) {
+                  newYMax = Math.min(100, Math.ceil(maxVal * 1.15));
+                  if (newYMax < 5) newYMax = 5;
+                }
+
+                chartContext.updateOptions({
+                  yaxis: {
+                    min: 0,
+                    max: newYMax,
+                    tickAmount: 6,
+                    labels: {
+                      style: { fontFamily: 'Outfit, sans-serif', fontWeight: 600 },
+                      formatter: (val) => val.toFixed(0) + "%"
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#f1f5f9' },
-                            ticks: { callback: v => v % 1 === 0 ? v.toLocaleString() : '' }
-                        },
-                        x: { grid: { display: false } }
+                    title: {
+                      text: "비중 (%)",
+                      style: { fontFamily: 'Outfit, sans-serif', fontWeight: 700 }
                     }
-                }
-            });
-
-            // 2. 차이(증감 = 2026 - 2025) 차트
-            const datasetsDiff = weekData.map((wd, idx) => {
-                const catData = wd.data.filter(d => d.category === regionKey);
-                const vals = routes.map(route => {
-                    const found = catData.find(d => d.route === route);
-                    return found ? (found.v2026 - found.v2025) : 0;
-                });
-                return {
-                    label: wd.week,
-                    data: vals,
-                    backgroundColor: colors[idx % colors.length],
-                    borderRadius: 4
-                };
-            });
-
-            const ctxDiff = document.getElementById(`mw-chart-diff-${regionKey}`).getContext('2d');
-            multiChartInstances[`diff-${regionKey}`] = new Chart(ctxDiff, {
-                type: 'bar',
-                data: { labels: routes, datasets: datasetsDiff },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: { mode: 'index', intersect: false }
-                    },
-                    scales: {
-                        y: {
-                            grid: { color: '#f1f5f9' },
-                            ticks: { callback: v => v % 1 === 0 ? v.toLocaleString() : '' }
-                        },
-                        x: { grid: { display: false } }
-                    }
-                }
-            });
-        }
-
-        function getRouteClassification(weekData, category, route) {
-            let allIncrease = true;
-            let allDecrease = true;
-
-            for (let wd of weekData) {
-                const f = wd.data.filter(d => d.category === category).find(d => d.route === route);
-                const diff = f ? (f.v2026 - f.v2025) : 0;
-                if (diff <= 0) allIncrease = false;
-                if (diff >= 0) allDecrease = false;
+                  }
+                }, false, false);
+              }, 30);
             }
-
-            if (allIncrease) return '3주 연속 증가';
-            if (allDecrease) return '3주 연속 감소';
-            return '변동';
-        }
-
-        // 3주 트렌드 테이블 생성
-        function buildTrendTable(weekData, category, latestCatData) {
-            const routes = latestCatData.map(d => d.route);
-            const weekLabels = weekData.map(wd => wd.week);
-
-            // 각 노선의 분류 및 차이값 미리 계산
-            const routeDetails = routes.map(route => {
-                const classification = getRouteClassification(weekData, category, route);
-                const diffs = weekData.map(wd => {
-                    const f = wd.data.filter(d => d.category === category).find(d => d.route === route);
-                    return f ? (f.v2026 - f.v2025) : 0;
-                });
-                return { route, classification, diffs };
-            });
-
-            // 정렬: 1. 분류 순서 (3주 연속 감소 -> 변동 -> 3주 연속 증가)
-            //       2. 주차별 차이값 오름차순 (diffs[0] -> diffs[1] -> diffs[2])
-            const classOrder = {
-                '3주 연속 감소': 1,
-                '변동': 2,
-                '3주 연속 증가': 3
-            };
-
-            routeDetails.sort((a, b) => {
-                if (classOrder[a.classification] !== classOrder[b.classification]) {
-                    return classOrder[a.classification] - classOrder[b.classification];
-                }
-                for (let i = 0; i < a.diffs.length; i++) {
-                    if (a.diffs[i] !== b.diffs[i]) {
-                        return a.diffs[i] - b.diffs[i];
-                    }
-                }
-                return 0;
-            });
-
-            // rowspan 계산용 맵 생성
-            const rowspanMap = [];
-            let i = 0;
-            while (i < routeDetails.length) {
-                let j = i + 1;
-                while (j < routeDetails.length && routeDetails[j].classification === routeDetails[i].classification) {
-                    j++;
-                }
-                rowspanMap[i] = j - i;
-                i = j;
+          }
+        },
+        stroke: {
+          curve: 'smooth',
+          width: series.map((s, i) => i === 0 ? 4 : 2.5),
+          dashArray: series.map((s, i) => i === 0 ? 0 : 0)
+        },
+        xaxis: {
+          categories: categories,
+          labels: {
+            style: { fontFamily: 'Outfit, sans-serif', fontSize: '13px', fontWeight: 600 }
+          }
+        },
+        yaxis: {
+          min: 0,
+          max: yMax,
+          tickAmount: 6,
+          labels: {
+            style: { fontFamily: 'Outfit, sans-serif', fontWeight: 600 },
+            formatter: (val) => val.toFixed(0) + "%"
+          },
+          title: {
+            text: "비중 (%)",
+            style: { fontFamily: 'Outfit, sans-serif', fontWeight: 700 }
+          }
+        },
+        markers: {
+          size: 5,
+          hover: { size: 7 }
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'left',
+          fontFamily: 'Outfit, sans-serif'
+        },
+        tooltip: {
+          shared: true,
+          intersect: false,
+          y: {
+            formatter: (val, opts) => {
+              const mIdx = opts.dataPointIndex;
+              const tObj = trendList[mIdx];
+              const countStr = tObj ? ` (${tObj.total_count.toLocaleString('ko-KR')}명 중)` : "";
+              return val.toFixed(1) + "%" + countStr;
             }
+          }
+        },
+        colors: colors
+      };
 
-            const rows = routeDetails.map((details, idx) => {
-                const route = details.route;
-                
-                const cells = weekData.map(wd => {
-                    const f = wd.data.filter(d => d.category === category).find(d => d.route === route);
-                    const v25 = f ? f.v2025 : 0;
-                    const v26 = f ? f.v2026 : 0;
-                    const diff = v26 - v25;
-                    const diffColor = diff > 0 ? 'text-emerald-600 font-bold' : diff < 0 ? 'text-red-500 font-bold' : 'text-slate-400';
-                    const diffSign = diff > 0 ? '+' : '';
-                    
-                    return `
-                        <td class="px-2 py-2 text-center text-slate-600 border border-slate-200">${Math.round(v25).toLocaleString()}</td>
-                        <td class="px-2 py-2 text-center text-slate-800 font-medium border border-slate-200">${Math.round(v26).toLocaleString()}</td>
-                        <td class="px-2 py-2 text-center border border-slate-200 ${diffColor}">${diffSign}${Math.round(diff).toLocaleString()}</td>
-                    `;
-                }).join('');
+      if (yearlyTrendLineChartInstance) {
+        yearlyTrendLineChartInstance.destroy();
+      }
+      yearlyTrendLineChartInstance = new ApexCharts(chartEl, options);
+      yearlyTrendLineChartInstance.render();
+    }
 
-                const clsSpan = rowspanMap[idx];
-                let clsCell = '';
-                if (clsSpan) {
-                    let bgClass = 'bg-slate-50';
-                    let textClass = 'text-slate-500';
-                    if (details.classification === '3주 연속 증가') {
-                        bgClass = 'bg-emerald-50';
-                        textClass = 'text-emerald-700 font-bold';
-                    } else if (details.classification === '3주 연속 감소') {
-                        bgClass = 'bg-rose-50';
-                        textClass = 'text-rose-700 font-bold';
-                    }
-                    clsCell = `<td rowspan="${clsSpan}" class="${bgClass} ${textClass} text-center align-middle border border-slate-200 text-xs font-semibold px-2 py-2">${details.classification}</td>`;
-                }
+    function hasPromotionForCell(monthOrYear, teamName, channelKey, routeName) {
+      if (!dashboardData || !dashboardData.promotions_data) return false;
+      if (channelKey === "직판" || channelKey === "전체") return false;
 
-                return `
-                <tr class="bg-white hover:bg-slate-50 border-b border-slate-200">
-                    ${clsCell}
-                    <td class="px-3 py-2 font-medium text-slate-900 border border-slate-200 sticky left-0 bg-white hover:bg-slate-50 z-10">${route}</td>
-                    ${cells}
-                </tr>`;
-            }).join('');
-
-            return `
-            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 overflow-x-auto">
-                <h4 class="text-sm font-semibold mb-3 text-slate-600">📊 3주간 예약 추이 및 전년대비 비교 (주차별 2025 vs 2026)</h4>
-                <table class="min-w-full text-sm border-collapse border border-slate-200">
-                    <thead class="text-xs text-slate-700 uppercase bg-slate-200">
-                        <tr>
-                            <th rowspan="2" class="px-2 py-2 text-center align-middle border border-slate-300 bg-slate-200">분류</th>
-                            <th rowspan="2" class="px-3 py-2 text-left align-middle border border-slate-300 bg-slate-200 sticky left-0 z-20">노선</th>
-                            <th colspan="3" class="px-2 py-1 text-center border border-slate-300 bg-blue-100/50 text-blue-900">${weekLabels[0]}</th>
-                            <th colspan="3" class="px-2 py-1 text-center border border-slate-300 bg-teal-100/50 text-teal-900">${weekLabels[1]}</th>
-                            <th colspan="3" class="px-2 py-1 text-center border border-slate-300 bg-indigo-100/50 text-indigo-900">${weekLabels[2]}</th>
-                        </tr>
-                        <tr>
-                            <th class="px-2 py-1 text-center border border-slate-300 bg-slate-100">25년</th>
-                            <th class="px-2 py-1 text-center border border-slate-300 bg-slate-100">26년</th>
-                            <th class="px-2 py-1 text-center border border-slate-300 bg-slate-100 text-blue-800">차이</th>
-                            
-                            <th class="px-2 py-1 text-center border border-slate-300 bg-slate-100">25년</th>
-                            <th class="px-2 py-1 text-center border border-slate-300 bg-slate-100">26년</th>
-                            <th class="px-2 py-1 text-center border border-slate-300 bg-slate-100 text-teal-800">차이</th>
-                            
-                            <th class="px-2 py-1 text-center border border-slate-300 bg-slate-100">25년</th>
-                            <th class="px-2 py-1 text-center border border-slate-300 bg-slate-100">26년</th>
-                            <th class="px-2 py-1 text-center border border-slate-300 bg-slate-100 text-indigo-800">차이</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>`;
+      if (dashboardData.years && dashboardData.years.includes(monthOrYear)) {
+        if (!dashboardData.months) return false;
+        for (let m of dashboardData.months) {
+          const pList = getPromotionsStrict(m, teamName, channelKey, routeName);
+          if (pList && pList.length > 0) return true;
         }
-    </script>
+        return false;
+      } else {
+        const pList = getPromotionsStrict(monthOrYear, teamName, channelKey, routeName);
+        return pList && pList.length > 0;
+      }
+    }
+
+    function getAllPromotionsForSelection(monthOrYear, teamName, channelKey, routeName) {
+      if (!dashboardData || !dashboardData.promotions_data) return [];
+      
+      let targetMonths = [];
+      if (dashboardData.years && dashboardData.years.includes(monthOrYear)) {
+        targetMonths = dashboardData.months || [];
+      } else {
+        targetMonths = [monthOrYear];
+      }
+
+      let results = [];
+      targetMonths.forEach(m => {
+        let pList = getPromotionsStrict(m, teamName, channelKey, routeName);
+        pList.forEach(p => {
+          const entry = (targetMonths.length > 1) ? `[${m}] ${p}` : p;
+          if (!results.includes(entry)) {
+            results.push(entry);
+          }
+        });
+      });
+
+      return results;
+    }
+
+    function openRouteDetail(routeName, channelKey, channelName) {
+      const { teamData } = getSelectionData();
+      if (!teamData) return;
+
+      const routeObj = teamData.routes.find(r => r.route === routeName);
+      if (!routeObj) return;
+
+      modalRouteName.textContent = routeName;
+      modalChannelName.textContent = channelName;
+
+      const isYearView = (dashboardData.years && dashboardData.years.includes(currentMonth));
+      let breakdownList = [];
+      let totalSum = 0;
+
+      if (isYearView) {
+        const trendList = routeObj.monthly_inflow_trend || [];
+        // Build map from monthKey -> count
+        const trendMap = {};
+        trendList.forEach(t => {
+          const mKey = (t.full_month && t.full_month.includes('월')) ? t.full_month : ymToMonthKey(t.full_month);
+          let count = 0;
+          if (channelKey === "전체") {
+            count = t.total_count;
+          } else {
+            count = t.channels ? (t.channels[channelKey] || 0) : 0;
+          }
+          trendMap[mKey] = (trendMap[mKey] || 0) + count;
+        });
+        // Collect all months with promo for this channel+route
+        const { teamData: _td } = getSelectionData();
+        const _tName = _td ? _td.team_name : "";
+        const promoMonths = new Set();
+        if (channelKey !== "전체" && channelKey !== "직판") {
+          (dashboardData.months || []).forEach(m => {
+            const pl = getPromotionsStrict(m, _tName, channelKey, routeName);
+            if (pl && pl.length > 0) promoMonths.add(m);
+          });
+        }
+        // Union of months from trend and promo months, ordered by dashboardData.months
+        const allMonthKeys = new Set([...Object.keys(trendMap), ...promoMonths]);
+        (dashboardData.months || []).forEach(m => {
+          if (allMonthKeys.has(m)) {
+            const count = trendMap[m] || 0;
+            breakdownList.push({ ym: m, count: count });
+            totalSum += count;
+          }
+        });
+      } else {
+        routeObj.monthly_breakdown.forEach(mb => {
+          let count = 0;
+          if (channelKey === "전체") {
+            count = mb.total_count;
+          } else {
+            count = mb.channels[channelKey] || 0;
+          }
+          if (count > 0) {
+            breakdownList.push({ ym: mb.ym, count: count });
+            totalSum += count;
+          }
+        });
+      }
+
+      modalTotalCount.textContent = `${totalSum.toLocaleString('ko-KR')}명`;
+      renderModalContent(breakdownList, routeName, channelKey, channelName);
+      showModal();
+    }
+
+    function openTeamTotalDetail(channelKey, channelName) {
+      const { teamData } = getSelectionData();
+      if (!teamData) return;
+
+      const teamTotal = teamData.team_total;
+      modalRouteName.textContent = "전체 (팀 합계)";
+      modalChannelName.textContent = channelName;
+
+      const isYearView = (dashboardData.years && dashboardData.years.includes(currentMonth));
+      let breakdownList = [];
+      let totalSum = 0;
+
+      if (isYearView) {
+        const trendList = teamTotal.monthly_inflow_trend || [];
+        // Build map from monthKey -> count
+        const trendMap2 = {};
+        trendList.forEach(t => {
+          const mKey = (t.full_month && t.full_month.includes('월')) ? t.full_month : ymToMonthKey(t.full_month);
+          let count = 0;
+          if (channelKey === "전체") {
+            count = t.total_count;
+          } else {
+            count = t.channels ? (t.channels[channelKey] || 0) : 0;
+          }
+          trendMap2[mKey] = (trendMap2[mKey] || 0) + count;
+        });
+        // Collect all months with promo for this channel (any route of this team)
+        const { teamData: _td2 } = getSelectionData();
+        const _tName2 = _td2 ? _td2.team_name : "";
+        const promoMonths2 = new Set();
+        if (channelKey !== "전체" && channelKey !== "직판") {
+          (dashboardData.months || []).forEach(m => {
+            // Check if any route has this promo in this month for this team
+            const promosForMonth = dashboardData.promotions_data && dashboardData.promotions_data[m];
+            if (promosForMonth && promosForMonth[_tName2] && promosForMonth[_tName2][channelKey]) {
+              promoMonths2.add(m);
+            }
+          });
+        }
+        const allMonthKeys2 = new Set([...Object.keys(trendMap2), ...promoMonths2]);
+        (dashboardData.months || []).forEach(m => {
+          if (allMonthKeys2.has(m)) {
+            const count = trendMap2[m] || 0;
+            breakdownList.push({ ym: m, count: count });
+            totalSum += count;
+          }
+        });
+      } else {
+        teamTotal.monthly_breakdown.forEach(mb => {
+          let count = 0;
+          if (channelKey === "전체") {
+            count = mb.total_count;
+          } else {
+            count = mb.channels[channelKey] || 0;
+          }
+          if (count > 0) {
+            breakdownList.push({ ym: mb.ym, count: count });
+            totalSum += count;
+          }
+        });
+      }
+
+      modalTotalCount.textContent = `${totalSum.toLocaleString('ko-KR')}명`;
+      renderModalContent(breakdownList, "전체", channelKey, channelName);
+      showModal();
+    }
+
+    // Render Modal Content & Mini Chart
+    function renderModalContent(breakdownList, routeName, channelKey, channelName) {
+      const isYearView = (dashboardData.years && dashboardData.years.includes(currentMonth));
+      const modalTitleEl = document.getElementById("modal-title");
+      const modalSectionTitleEl = document.getElementById("modal-section-title");
+      const modalPromoNoteEl = document.getElementById("modal-promo-note");
+      const promoSummaryContainer = document.getElementById("modal-promo-summary-container");
+
+      if (modalTitleEl) {
+        if (isYearView) {
+          modalTitleEl.innerHTML = `<i class="fa-solid fa-calendar-days" style="color: var(--primary);"></i> 월별 예약 유입 인원`;
+        } else {
+          modalTitleEl.innerHTML = `<i class="fa-solid fa-plane-departure" style="color: var(--primary);"></i> 출발일 리드타임`;
+        }
+      }
+
+      if (modalSectionTitleEl) {
+        modalSectionTitleEl.innerHTML = `<i class="fa-solid fa-bullhorn" style="margin-right: 6px; color: var(--primary);"></i> 진행 프로모션`;
+      }
+
+      if (modalPromoNoteEl) {
+        modalPromoNoteEl.textContent = `※ 프로모션 정보는 네이버, 오픈마켓 진행 건만 포함되어 있습니다.`;
+        modalPromoNoteEl.style.color = `#800020`; // Dark Burgundy Red
+      }
+
+      const { teamData } = getSelectionData();
+      const teamName = teamData ? teamData.team_name : "";
+
+      // Promo summary box (Only shown in Monthly View)
+      if (promoSummaryContainer) {
+        if (!isYearView) {
+          const allPromos = getAllPromotionsForSelection(currentMonth, teamName, channelKey, routeName);
+          if (allPromos.length > 0) {
+            promoSummaryContainer.innerHTML = `
+              <div style="background: #fff7ed; border: 1.5px solid #fdba74; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px;">
+                <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #c2410c; line-height: 1.6;">
+                  ${allPromos.map(p => `<li><strong>${p}</strong></li>`).join('')}
+                </ul>
+              </div>`;
+          } else {
+            promoSummaryContainer.innerHTML = `
+              <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: var(--text-muted);">
+                <i class="fa-solid fa-circle-info" style="margin-right: 4px;"></i> 해당 월에 등록된 프로모션이 없습니다.
+              </div>`;
+          }
+        } else {
+          // Yearly Aggregate View: Top box removed per user request
+          promoSummaryContainer.innerHTML = ``;
+        }
+      }
+
+      if (breakdownList.length === 0) {
+        modalBreakdownContainer.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-folder-open" style="font-size: 32px; margin-bottom: 8px; opacity: 0.4;"></i>
+            <p>해당 조건에 대한 유입 데이터가 없습니다.</p>
+          </div>`;
+        if (modalChartInstance) { modalChartInstance.destroy(); modalChartInstance = null; }
+        return;
+      }
+
+      let html = "";
+      if (isYearView) {
+        breakdownList.forEach(item => {
+          const mKey = item.ym.includes('월') ? item.ym : ymToMonthKey(item.ym);
+          
+          let promoList = [];
+          if (routeName === "전체") {
+            // Team total: gather promos from all routes for this month/team/channel
+            const promosForMonth = dashboardData.promotions_data && dashboardData.promotions_data[mKey];
+            if (promosForMonth && promosForMonth[teamName] && promosForMonth[teamName][channelKey]) {
+              const chPromos = promosForMonth[teamName][channelKey];
+              Object.values(chPromos).forEach(pArr => {
+                pArr.forEach(p => { if (!promoList.includes(p)) promoList.push(p); });
+              });
+            }
+          } else {
+            promoList = getPromotionsStrict(mKey, teamName, channelKey, routeName);
+          }
+          const hasPromo = promoList.length > 0;
+          const promoStr = promoList.join(", ");
+
+          html += `
+            <div class="breakdown-row">
+              <div class="breakdown-top-line">
+                <span class="breakdown-ym"><i class="fa-regular fa-calendar" style="color: var(--primary);"></i> 예약 연월: ${mKey}</span>
+                <span class="breakdown-count">${item.count.toLocaleString('ko-KR')}명</span>
+              </div>`;
+
+          if (hasPromo) {
+            html += `
+              <div class="promo-tag" style="background: #fff7ed; border: 1px solid #fdba74; color: #c2410c; margin-top: 6px; padding: 6px 10px; border-radius: 6px; font-size: 13px;">
+                <i class="fa-solid fa-bullhorn" style="color: #ea580c; margin-right: 4px;"></i> <span>프로모션: <strong>${promoStr}</strong></span>
+              </div>`;
+          }
+
+          html += `</div>`;
+        });
+        modalBreakdownContainer.innerHTML = html;
+      } else {
+        // Monthly view: Departure lead time list removed per user request ("프로모션 리스트 아래에 출발 연월하고 숫자 그건 뻬줘. 어차피 위에 그래프로 확인 가능해서")
+        modalBreakdownContainer.innerHTML = "";
+      }
+
+      const categories = breakdownList.map(b => isYearView ? (b.ym.includes('월') ? b.ym : ymToMonthKey(b.ym)) : b.ym);
+      const counts = breakdownList.map(b => b.count);
+
+      const options = {
+        series: [{ name: '유입 인원', data: counts }],
+        chart: { 
+          type: 'bar', 
+          height: 180, 
+          toolbar: { show: false } 
+        },
+        plotOptions: { bar: { borderRadius: 4, columnWidth: '40%' } },
+        xaxis: { categories: categories },
+        colors: ['#2563eb'],
+        tooltip: {
+          enabled: true,
+          shared: false,
+          intersect: true,
+          y: {
+            formatter: function (val) {
+              return val.toLocaleString('ko-KR') + "명";
+            }
+          }
+        }
+      };
+
+      if (modalChartInstance) { modalChartInstance.destroy(); }
+      modalChartInstance = new ApexCharts(document.querySelector("#modal-chart-area"), options);
+      modalChartInstance.render();
+    }
+
+    function showModal() {
+      detailModal.classList.add("active");
+    }
+
+    function closeModal() {
+      detailModal.classList.remove("active");
+    }
+
+window.addEventListener("DOMContentLoaded", init);
+  </script>
 </body>
-
 </html>
